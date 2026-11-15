@@ -4,6 +4,7 @@ import {
   fetchRenderedPages,
   type RenderedPage,
 } from "../integrations/fetch-html.js";
+import { withCoverageEnvelope } from "./envelope.js";
 import { errorResult, jsonResult, loadSite } from "./helpers.js";
 
 export const qualitykitAiAuditInputSchema = {
@@ -28,14 +29,25 @@ export async function qualitykitAiAudit(args: {
       );
     }
     const result = runAiAudit(site, rendered);
-    return jsonResult({
-      ok: true,
-      tool: "qualitykit.ai_audit",
-      scores: result.scores,
-      findings: result.findings,
-      evidence: result.evidence,
-      caveats: result.caveats,
-    });
+    const renderedRan = Boolean(args.includeRendered && args.siteUrl);
+    return jsonResult(
+      withCoverageEnvelope(
+        {
+          ok: true,
+          tool: "qualitykit.ai_audit",
+          scores: result.scores,
+          findings: result.findings,
+          evidence: result.evidence,
+          caveats: result.caveats,
+        },
+        {
+          source: "completed",
+          rendered: renderedRan ? "completed" : "not_run",
+          live: "not_run",
+          searchData: "not_connected",
+        },
+      ),
+    );
   } catch (error) {
     return errorResult(error);
   }

@@ -22,10 +22,12 @@ Or with Cursor, point MCP at `node` + `dist/index.js` after a build.
 
 ## Project layout
 
-- `src/` — MCP server, audit engine, adapters, tools
+- `src/` — MCP server, adapters, and tools
+- `packages/engine/` — audit engine shared by the MCP and cloud app
+- `cloud/` — optional self-hosted Pro app (see `cloud/README.md`)
 - `fixtures/` — tiny Next.js trees for tests
 - `tests/` — Vitest suite (no network)
-- `website/` — qualitykit.dev landing and docs
+- `website/` — qualitykit.dev landing and docs (`npm run dev` in that directory to preview)
 
 ## Guidelines
 

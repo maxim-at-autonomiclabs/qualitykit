@@ -3,6 +3,7 @@ import { nextjsAdapter } from "../adapters/nextjs/index.js";
 import { buildContentBriefs } from "./content.js";
 import { buildLinkSuggestions } from "./links.js";
 import { buildSchemaPlan } from "./schema.js";
+import { withCoverageEnvelope } from "./envelope.js";
 import { errorResult, jsonResult, loadSite } from "./helpers.js";
 
 export const qualitykitPlanInputSchema = {
@@ -28,21 +29,31 @@ export async function qualitykitPlan(args: {
         ? nextjsAdapter.planBlog(site, { includeCategories: true })
         : [];
 
-    return jsonResult({
-      ok: true,
-      tool: "qualitykit.plan",
-      opportunities: {
-        contentBriefs: briefs,
-        blogRecommendations: blog,
-        schemaRecommendations: schema,
-        internalLinks: links,
-      },
-      notes: [
-        "All items are opportunities unless also flagged as defects by qualitykit.audit.",
-        "QualityKit does not write files. Apply approved specs via the coding agent.",
-        "Do not mass-generate articles.",
-      ],
-    });
+    return jsonResult(
+      withCoverageEnvelope(
+        {
+          ok: true,
+          tool: "qualitykit.plan",
+          opportunities: {
+            contentBriefs: briefs,
+            blogRecommendations: blog,
+            schemaRecommendations: schema,
+            internalLinks: links,
+          },
+          notes: [
+            "All items are opportunities unless also flagged as defects by qualitykit.audit.",
+            "QualityKit does not write files. Apply approved specs via the coding agent.",
+            "Do not mass-generate articles.",
+          ],
+        },
+        {
+          source: "completed",
+          rendered: "not_run",
+          live: "not_run",
+          searchData: "not_connected",
+        },
+      ),
+    );
   } catch (error) {
     return errorResult(error);
   }

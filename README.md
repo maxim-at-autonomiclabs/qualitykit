@@ -51,6 +51,10 @@ npm run build
 | `qualitykit.plan` | Content briefs, blog architecture plan, schema, internal links |
 | `qualitykit.fix` | Advise-only unified diffs / file specs for selected findings (`safeAutoOnly` supported) |
 | `qualitykit.verify` | Re-audit; report fixed / remaining / regressed (supports `proposedFiles`) |
+| `monitor.status` | Latest hosted Pro run when `QUALITYKIT_API_KEY` is set; otherwise `self_hosted` / `not_run` |
+| `visibility.report` | Stub (`not_connected`) until Search/AI visibility ships |
+
+Responses include additive `schemaVersion` + `coverage` fields. Never treat `not_run` as a pass.
 
 Specialized tools (`codebase.analyze`, `seo.audit`, `blog.scaffold`, etc.) remain available but are secondary.
 
@@ -82,11 +86,18 @@ Heuristic 0–100 scores with evidence. They **do not** predict rankings or AI c
 
 ## Open source vs Pro
 
-| Free (this repo) | Pro (planned) |
-| --- | --- |
-| Local audits, AI readiness heuristics, advise-only diffs, verification | Live crawl at scale, AI search prompt monitoring, competitor gaps, alerts, history |
+| | Free forever ($0) | Pro ($29/mo) |
+| --- | --- | --- |
+| Local MCP audits, AI readiness, fixes, verify | Yes | Yes |
+| Account / API key required | No | For hosted features |
+| Daily hosted crawls + history | — | 1 production site |
+| Email regression alerts | — | Yes |
+| `monitor.status` via cloud | Self-hosted stub | Connected |
+| GSC / AI citation credits | Later / self-run | Later phases |
 
-Local code fixes stay free. Hosted intelligence is where Pro belongs — not charging developers to generate a `robots.ts`.
+Cloud app: [`cloud/`](cloud/) (Cloudflare Workers + D1 + Queues + Cron, Clerk, Stripe). Optional self-hosted Pro infrastructure; setup is in [`cloud/README.md`](cloud/README.md). The local MCP runs on its own.
+
+Local code fixes stay free. Model tokens come from your coding agent — QualityKit does not fund inference.
 
 ## Safety
 
@@ -100,23 +111,9 @@ Local code fixes stay free. Hosted intelligence is where Pro belongs — not cha
 - Node.js 18+
 - Deep analysis: **Next.js** (App Router for blog scaffolding)
 
-## Website (qualitykit.dev)
+## Website
 
-The marketing/docs site lives in [`website/`](website/) and deploys to **Cloudflare Workers** (static assets).
-
-Live Worker: [qualitykit-web.maxim-a63.workers.dev](https://qualitykit-web.maxim-a63.workers.dev)
-
-```bash
-cd website
-npm install
-npm run deploy
-```
-
-### Custom domain
-
-1. Add the `qualitykit.dev` zone to the same Cloudflare account used by Wrangler.
-2. Uncomment the `routes` custom domains in [`website/wrangler.toml`](website/wrangler.toml).
-3. Run `npm run deploy` again (or attach the domain in Workers → qualitykit-web → Custom Domains).
+Marketing site source is in [`website/`](website/). Preview locally with `npm install` and `npm run dev`.
 
 ## Contributing
 

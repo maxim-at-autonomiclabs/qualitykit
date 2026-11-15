@@ -1,8 +1,13 @@
 {
   "name": "qualitykit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Read-only SEO + AEO MCP server for Next.js — audit, AI readiness, advise-only fixes",
   "type": "module",
+  "private": false,
+  "workspaces": [
+    "packages/*",
+    "cloud"
+  ],
   "bin": {
     "qualitykit": "./dist/index.js"
   },
@@ -13,10 +18,12 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build -w @qualitykit/engine && tsc",
+    "build:engine": "npm run build -w @qualitykit/engine",
+    "build:cloud": "npm run build -w @qualitykit/cloud",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "test": "vitest run",
+    "test": "npm run build:engine && vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
   },
@@ -42,6 +49,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
+    "@qualitykit/engine": "0.3.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

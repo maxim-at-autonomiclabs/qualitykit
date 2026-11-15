@@ -1,14 +1,15 @@
 name = "qualitykit-web"
+main = "src/worker.js"
 compatibility_date = "2025-11-15"
 workers_dev = true
 
-# Attach qualitykit.dev after the zone is on this Cloudflare account:
-# routes = [
-#   { pattern = "qualitykit.dev", custom_domain = true },
-#   { pattern = "www.qualitykit.dev", custom_domain = true }
-# ]
+routes = [
+  { pattern = "qualitykit.dev", custom_domain = true },
+  { pattern = "www.qualitykit.dev", custom_domain = true }
+]
 
 [assets]
 directory = "./dist"
+binding = "ASSETS"
 html_handling = "auto-trailing-slash"
 not_found_handling = "404-page"

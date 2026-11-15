@@ -1,0 +1,25 @@
+{
+  "name": "@qualitykit/engine",
+  "version": "0.3.0",
+  "description": "Shared SEO/AEO audit engine for QualityKit MCP and Cloud",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "echo \"engine tested via root suite\""
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

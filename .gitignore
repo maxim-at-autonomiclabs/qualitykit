@@ -4,10 +4,17 @@ dist/
 .env
 .env.*
 !.env.example
+!fixtures/**/.env
+.dev.vars
+.wrangler/
 .DS_Store
 coverage/
 *.tsbuildinfo
 .cursor/
 website/dist/
 website/node_modules/
+cloud/node_modules/
+cloud/.dev.vars
+cloud/.wrangler/
+packages/engine/dist/
 .vercel/

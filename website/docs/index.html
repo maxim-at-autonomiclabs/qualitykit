@@ -3,12 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Google Tag Manager -->
+    <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-PPSVMCXJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+    </script>
     <title>Docs — QualityKit</title>
     <meta
       name="description"
       content="Install QualityKit, configure Cursor MCP, and run audit, AI audit, plan, fix, and verify."
     />
     <link rel="canonical" href="https://qualitykit.dev/docs/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,12 +28,21 @@
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-PPSVMCXJ"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
     <div class="wrap">
       <header class="site-header">
         <a class="brand" href="/">QualityKit</a>
         <nav class="nav" aria-label="Primary">
           <a href="/docs/">Docs</a>
-          <a href="/docs/ai-audit/">AI Audit</a>
+          <a href="/pricing/">Pricing</a>
           <a href="https://github.com/maxim-at-autonomiclabs/qualitykit">GitHub</a>
         </nav>
       </header>
@@ -57,7 +76,13 @@ npx -y qualitykit</code></pre>
           <li><code>qualitykit.plan</code> — content briefs, blog plan, schema, links</li>
           <li><code>qualitykit.fix</code> — unified diffs / file specs (never writes the repo)</li>
           <li><code>qualitykit.verify</code> — fixed / remaining / regressed</li>
+          <li><code>monitor.status</code> — hosted Pro run when <code>QUALITYKIT_API_KEY</code> is set; otherwise self-hosted stub</li>
+          <li><code>visibility.report</code> — stub until Search/AI visibility ships</li>
         </ul>
+
+        <p>
+          Tool responses include additive <code>schemaVersion</code> and <code>coverage</code>. Never treat <code>not_run</code> as a pass. Model tokens are your agent’s — not QualityKit-funded.
+        </p>
 
         <h2>Safety</h2>
         <ul>
@@ -65,9 +90,10 @@ npx -y qualitykit</code></pre>
           <li>Absolute <code>projectRoot</code>; skips <code>.env*</code> and common secrets</li>
           <li>Ask before changing AI crawler allow/disallow rules</li>
           <li>No ranking or citation guarantees</li>
+          <li>No mandatory signup for local MCP; no paywall on local fixes</li>
         </ul>
 
-        <p><a href="/docs/ai-audit/">AI Audit Mode →</a></p>
+        <p><a href="/docs/ai-audit/">AI Audit Mode →</a> · <a href="/pricing/">Pricing →</a></p>
       </article>
 
       <footer class="site-footer">

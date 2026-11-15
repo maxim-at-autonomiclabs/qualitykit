@@ -1,0 +1,38 @@
+name = "qualitykit-cloud"
+main = "src/index.ts"
+compatibility_date = "2025-11-15"
+workers_dev = true
+
+routes = [
+  { pattern = "app.qualitykit.dev", custom_domain = true }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "qualitykit"
+database_id = "fd391b59-d80e-42cb-977a-d72eebaf33ed"
+migrations_dir = "migrations"
+
+[[queues.producers]]
+binding = "CRAWL_QUEUE"
+queue = "qualitykit-crawl"
+
+[[queues.consumers]]
+queue = "qualitykit-crawl"
+max_batch_size = 5
+max_retries = 3
+
+[triggers]
+crons = ["0 6 * * *"]
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+html_handling = "auto-trailing-slash"
+not_found_handling = "single-page-application"
+
+[vars]
+APP_URL = "https://app.qualitykit.dev"
+# Replace after creating Stripe Price + copying Clerk publishable key:
+STRIPE_PRICE_ID = "price_REPLACE_ME"
+CLERK_PUBLISHABLE_KEY = "pk_live_Y2xlcmsucXVhbGl0eWtpdC5kZXYk"

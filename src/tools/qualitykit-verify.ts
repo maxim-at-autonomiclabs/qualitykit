@@ -3,6 +3,7 @@ import { runAuditEngine } from "../audit/engine.js";
 import type { ProjectFile } from "../model/site.js";
 import { analyzeProject } from "../adapters/index.js";
 import { resolveSafeRoot, readProjectFiles } from "../project/read.js";
+import { withCoverageEnvelope } from "./envelope.js";
 import { errorResult, jsonResult, loadSite } from "./helpers.js";
 
 export const qualitykitVerifyInputSchema = {
@@ -70,23 +71,33 @@ export async function qualitykitVerify(args: {
       }
     }
 
-    return jsonResult({
-      ok: true,
-      tool: "qualitykit.verify",
-      summary: {
-        fixed: fixed.length,
-        remaining: remaining.length,
-        regressed: regressed.length,
-      },
-      fixed,
-      remaining,
-      regressed,
-      afterSummary: after.summary,
-      notes: [
-        "Verification uses local analysis of current files plus optional proposedFiles.",
-        "Does not prove ranking or AI citation improvements.",
-      ],
-    });
+    return jsonResult(
+      withCoverageEnvelope(
+        {
+          ok: true,
+          tool: "qualitykit.verify",
+          summary: {
+            fixed: fixed.length,
+            remaining: remaining.length,
+            regressed: regressed.length,
+          },
+          fixed,
+          remaining,
+          regressed,
+          afterSummary: after.summary,
+          notes: [
+            "Verification uses local analysis of current files plus optional proposedFiles.",
+            "Does not prove ranking or AI citation improvements.",
+          ],
+        },
+        {
+          source: "completed",
+          rendered: "not_run",
+          live: "not_run",
+          searchData: "not_connected",
+        },
+      ),
+    );
   } catch (error) {
     return errorResult(error);
   }

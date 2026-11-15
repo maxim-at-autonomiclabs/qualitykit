@@ -33,11 +33,17 @@ import {
   qualitykitVerify,
   qualitykitVerifyInputSchema,
 } from "./tools/qualitykit-verify.js";
+import {
+  monitorStatus,
+  monitorStatusInputSchema,
+  visibilityReport,
+  visibilityReportInputSchema,
+} from "./tools/monitor.js";
 import { schemaPlan, schemaPlanInputSchema } from "./tools/schema.js";
 import { seoValidate, validateInputSchema } from "./tools/validate.js";
 
 export const SERVER_NAME = "qualitykit";
-export const SERVER_VERSION = "0.2.0";
+export const SERVER_VERSION = "0.3.0";
 
 export function createServer(): McpServer {
   const server = new McpServer({
@@ -99,6 +105,28 @@ export function createServer(): McpServer {
       inputSchema: qualitykitVerifyInputSchema,
     },
     qualitykitVerify,
+  );
+
+  server.registerTool(
+    "monitor.status",
+    {
+      title: "Hosted monitor status",
+      description:
+        "Fetch latest QualityKit Cloud monitoring run when QUALITYKIT_API_KEY is set. Otherwise returns self_hosted / not_run coverage (free local mode).",
+      inputSchema: monitorStatusInputSchema,
+    },
+    monitorStatus,
+  );
+
+  server.registerTool(
+    "visibility.report",
+    {
+      title: "Visibility report (stub)",
+      description:
+        "Placeholder for Search Console / AI visibility (Phase 3+). Always returns not_connected for now.",
+      inputSchema: visibilityReportInputSchema,
+    },
+    visibilityReport,
   );
 
   // Secondary / specialized tools

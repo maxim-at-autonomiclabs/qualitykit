@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { runAuditEngine } from "../audit/engine.js";
 import { fetchRenderedPages, type RenderedPage } from "../integrations/fetch-html.js";
+import { withCoverageEnvelope } from "./envelope.js";
 import { errorResult, jsonResult, loadSite } from "./helpers.js";
 
 export const qualitykitAuditInputSchema = {
@@ -36,22 +37,36 @@ export async function qualitykitAudit(args: {
     const result = runAuditEngine(site, rendered);
     const defects = result.findings.filter((f) => f.kind === "defect");
     const opportunities = result.findings.filter((f) => f.kind === "opportunity");
-    return jsonResult({
-      ok: true,
-      tool: "qualitykit.audit",
-      routeInventory: result.routeInventory,
-      summary: result.summary,
-      defects,
-      opportunities,
-      findings: result.findings,
-      site: result.site,
-      rendered: result.rendered,
-      caveats: [
-        "Defects are issues to fix; opportunities are growth recommendations.",
-        "Missing robots/blog/title-template are not automatically critical.",
-        "No ranking or AI-citation guarantees.",
-      ],
-    });
+    const renderedRan = Boolean(args.includeRendered && args.siteUrl);
+    return jsonResult(
+      withCoverageEnvelope(
+        {
+          ok: true,
+          tool: "qualitykit.audit",
+          routeInventory: result.routeInventory,
+          summary: result.summary,
+          defects,
+          opportunities,
+          findings: result.findings,
+          site: result.site,
+          rendered: result.rendered,
+          caveats: [
+            "Defects are issues to fix; opportunities are growth recommendations.",
+            "Missing robots/blog/title-template are not automatically critical.",
+            "No ranking or AI-citation guarantees.",
+            "AI model tokens are provided by your coding agent, not QualityKit.",
+          ],
+        },
+        {
+          source: "completed",
+          rendered: renderedRan ? "completed" : "not_run",
+          live: "not_run",
+          searchData: "not_connected",
+        },
+        site.business.name ?? site.packageName ?? "local",
+        "full",
+      ),
+    );
   } catch (error) {
     return errorResult(error);
   }

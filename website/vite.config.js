@@ -14,6 +14,7 @@ export default defineConfig({
         main: resolve(rootDir, "index.html"),
         docs: resolve(rootDir, "docs/index.html"),
         aiAudit: resolve(rootDir, "docs/ai-audit/index.html"),
+        pricing: resolve(rootDir, "pricing/index.html"),
       },
     },
   },

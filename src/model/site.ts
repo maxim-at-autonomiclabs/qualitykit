@@ -1,6 +1,6 @@
 export type FrameworkId = "nextjs" | "generic";
 
-export type RouterKind = "app" | "pages" | "unknown";
+export type RouterKind = "app" | "pages" | "static-html" | "unknown";
 
 export type Severity = "critical" | "high" | "medium" | "low" | "info";
 

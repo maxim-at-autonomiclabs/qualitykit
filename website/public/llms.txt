@@ -1,0 +1,20 @@
+# QualityKit
+
+> Open-source SEO + AEO MCP server for Next.js codebases. Audits defects vs opportunities, scores AI readiness, and proposes advise-only fixes. Free forever for local use; Pro adds hosted monitoring.
+
+## Product
+- Name: QualityKit
+- Site: https://qualitykit.dev
+- Docs: https://qualitykit.dev/docs/
+- Pricing: https://qualitykit.dev/pricing/
+- npm: https://www.npmjs.com/package/qualitykit
+- GitHub: https://github.com/maxim-at-autonomiclabs/qualitykit
+
+## Important
+- Local MCP audits and fixes never require a QualityKit account.
+- The coding agent applies approved diffs; QualityKit does not write your repo.
+- Model tokens come from the user's agent/provider, not QualityKit.
+- Scores and findings are heuristics — not ranking or citation guarantees.
+
+## Optional Pro
+- Hosted daily crawls, history, and email regression alerts for one production site ($29/mo).

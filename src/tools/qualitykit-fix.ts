@@ -3,6 +3,7 @@ import { nextjsAdapter } from "../adapters/nextjs/index.js";
 import { runAuditEngine } from "../audit/engine.js";
 import { fileSpecToDiff } from "../fix/diff.js";
 import type { FileSpec, Recommendation } from "../model/site.js";
+import { withCoverageEnvelope } from "./envelope.js";
 import { errorResult, jsonResult, loadSite } from "./helpers.js";
 
 export const qualitykitFixInputSchema = {
@@ -98,23 +99,33 @@ export async function qualitykitFix(args: {
       }
     }
 
-    return jsonResult({
-      ok: true,
-      tool: "qualitykit.fix",
-      mode: "advise-only",
-      selectedFindings: targets.map((t) => ({
-        id: t.id,
-        kind: t.kind,
-        fixSafety: t.fixSafety,
-        title: t.title,
-      })),
-      diffs,
-      notes: [
-        "Advise-only: QualityKit never writes the repository.",
-        "Apply diffs with the coding agent after user approval.",
-        "Prefer safeAutoOnly=true for low-risk technical creates/edits.",
-      ],
-    });
+    return jsonResult(
+      withCoverageEnvelope(
+        {
+          ok: true,
+          tool: "qualitykit.fix",
+          mode: "advise-only",
+          selectedFindings: targets.map((t) => ({
+            id: t.id,
+            kind: t.kind,
+            fixSafety: t.fixSafety,
+            title: t.title,
+          })),
+          diffs,
+          notes: [
+            "Advise-only: QualityKit never writes the repository.",
+            "Apply diffs with the coding agent after user approval.",
+            "Prefer safeAutoOnly=true for low-risk technical creates/edits.",
+          ],
+        },
+        {
+          source: "completed",
+          rendered: "not_run",
+          live: "not_run",
+          searchData: "not_connected",
+        },
+      ),
+    );
   } catch (error) {
     return errorResult(error);
   }

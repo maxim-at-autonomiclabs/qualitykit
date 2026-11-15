@@ -20,6 +20,29 @@ function load(name: string) {
 }
 
 describe("codebase analyze + seo audit", () => {
+  it("inventories static HTML / Vite marketing sites", () => {
+    const root = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../website",
+    );
+    const files = readProjectFiles(root);
+    const site = analyzeProject(
+      files,
+      { siteUrl: "https://qualitykit.dev" },
+      root,
+    );
+    expect(site.framework).toBe("generic");
+    expect(site.router).toBe("static-html");
+    expect(site.routes.map((r) => r.path)).toEqual(
+      expect.arrayContaining(["/", "/docs/", "/pricing/"]),
+    );
+    expect(site.robots.present).toBe(true);
+    expect(site.sitemap.present).toBe(true);
+    expect(site.structuredData.types).toEqual(
+      expect.arrayContaining(["Organization", "WebSite"]),
+    );
+  });
+
   it("reclassifies bare App Router findings as defects vs opportunities", () => {
     const site = load("bare-app");
     expect(site.framework).toBe("nextjs");
