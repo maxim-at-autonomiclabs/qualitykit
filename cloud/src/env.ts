@@ -6,6 +6,8 @@ export type Env = {
   STRIPE_PRICE_ID: string;
   CLERK_PUBLISHABLE_KEY: string;
   CLERK_SECRET_KEY: string;
+  /** Optional PEM public key (Dashboard → API keys → JWT public key). Skips JWKS fetch. */
+  CLERK_JWT_KEY?: string;
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
   RESEND_API_KEY?: string;

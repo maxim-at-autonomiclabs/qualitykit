@@ -22,6 +22,9 @@ Cloudflare Workers app for continuous monitoring, Clerk auth, Stripe billing, an
 ```bash
 cd cloud
 npx wrangler secret put CLERK_SECRET_KEY
+# Recommended on Workers (avoids jwk-failed-to-resolve):
+# npx wrangler secret put CLERK_JWT_KEY
+# paste PEM from Clerk Dashboard → API keys → Show JWT public key
 npx wrangler secret put STRIPE_SECRET_KEY
 npx wrangler secret put STRIPE_WEBHOOK_SECRET
 npx wrangler secret put RESEND_API_KEY

@@ -26,24 +26,30 @@ export function createApp() {
   const app = new Hono<{ Bindings: Env }>();
 
   app.get("/api/health", (c) =>
-    c.json({
-      ok: true,
-      service: "qualitykit-cloud",
-      version: "0.3.0",
-      appUrl: c.env.APP_URL,
-      stripePriceConfigured: Boolean(
-        c.env.STRIPE_PRICE_ID && !c.env.STRIPE_PRICE_ID.includes("REPLACE"),
-      ),
-      stripeInlinePriceFallback: !(
-        c.env.STRIPE_PRICE_ID && !c.env.STRIPE_PRICE_ID.includes("REPLACE")
-      ),
-      clerkConfigured: Boolean(
-        c.env.CLERK_PUBLISHABLE_KEY &&
-          !c.env.CLERK_PUBLISHABLE_KEY.includes("REPLACE") &&
-          (c.env.CLERK_PUBLISHABLE_KEY.startsWith("pk_live_") ||
-            c.env.CLERK_PUBLISHABLE_KEY.startsWith("pk_test_")),
-      ),
-    }),
+    c.json(
+      {
+        ok: true,
+        service: "qualitykit-cloud",
+        version: "0.3.0",
+        appUrl: c.env.APP_URL,
+        stripePriceConfigured: Boolean(
+          c.env.STRIPE_PRICE_ID && !c.env.STRIPE_PRICE_ID.includes("REPLACE"),
+        ),
+        stripeInlinePriceFallback: !(
+          c.env.STRIPE_PRICE_ID && !c.env.STRIPE_PRICE_ID.includes("REPLACE")
+        ),
+        clerkConfigured: Boolean(
+          c.env.CLERK_PUBLISHABLE_KEY &&
+            !c.env.CLERK_PUBLISHABLE_KEY.includes("REPLACE") &&
+            (c.env.CLERK_PUBLISHABLE_KEY.startsWith("pk_live_") ||
+              c.env.CLERK_PUBLISHABLE_KEY.startsWith("pk_test_")),
+        ),
+        clerkSecretConfigured: Boolean(c.env.CLERK_SECRET_KEY),
+        clerkJwtKeyConfigured: Boolean(c.env.CLERK_JWT_KEY),
+      },
+      200,
+      { "Cache-Control": "no-store" },
+    ),
   );
 
   /** Public bootstrap for the dashboard (no secrets). */
