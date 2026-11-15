@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-PPSVMCXJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+    </script>
+    <title>How to evaluate SEO MCP tools — QualityKit</title>
+    <meta
+      name="description"
+      content="Criteria for choosing an SEO MCP: codebase access, advise-only fixes, defects vs opportunities, and optional Search Console measurement — without unsourced competitor claims."
+    />
+    <link
+      rel="canonical"
+      href="https://qualitykit.dev/compare/seo-mcp-tools/"
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-PPSVMCXJ"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="brand" href="/">QualityKit</a>
+        <nav class="nav" aria-label="Primary">
+          <a href="/docs/">Docs</a>
+          <a href="/features/seo-mcp/">SEO MCP</a>
+          <a href="/pricing/">Pricing</a>
+          <a href="https://github.com/maxim-at-autonomiclabs/qualitykit">GitHub</a>
+        </nav>
+      </header>
+
+      <article class="doc">
+        <h1>Evaluating SEO MCP tools</h1>
+        <p>
+          An SEO MCP should help an agent improve a real codebase — not only score
+          a live URL. Use these criteria when comparing options. We do not name or
+          rank competitors here.
+        </p>
+
+        <h2>Criteria that matter</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Criterion</th>
+              <th>Why it matters</th>
+              <th>QualityKit</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Reads the repo</td>
+              <td>Fixes must match App Router / file layout</td>
+              <td>Yes — projectRoot analysis</td>
+            </tr>
+            <tr>
+              <td>Advise-only writes</td>
+              <td>You approve before anything lands in git</td>
+              <td>Yes — diffs + buildContracts; never writes files</td>
+            </tr>
+            <tr>
+              <td>Defects vs opportunities</td>
+              <td>Missing blog is not the same as blocked robots</td>
+              <td>Yes — explicit kinds</td>
+            </tr>
+            <tr>
+              <td>Safe vs approval</td>
+              <td>Auto-safe tech vs new landing pages</td>
+              <td>Yes — fixSafety on grow changes</td>
+            </tr>
+            <tr>
+              <td>Search Console loop</td>
+              <td>Measure after ship (optional)</td>
+              <td>Pro — backlog, mark_applied, visibility.report</td>
+            </tr>
+            <tr>
+              <td>No invented volumes</td>
+              <td>Avoid fake keyword counts</td>
+              <td>Yes — local grow stays volume-free</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>How to decide</h2>
+        <p>
+          Prefer tools that output evidence-backed findings and leave implementation
+          to your agent and review process. Treat any ranking or impression promises
+          as correlational at best once analytics are connected.
+        </p>
+
+        <p>
+          <a class="btn btn-primary" href="/features/seo-mcp/">See SEO MCP</a>
+          <a class="btn btn-ghost" href="/docs/">Get started</a>
+        </p>
+      </article>
+
+      <footer class="site-footer">
+        <span>MIT · open source local MCP</span>
+        <span><a href="/">Home</a> · <a href="/docs/">Docs</a></span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

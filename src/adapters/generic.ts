@@ -102,6 +102,81 @@ function extractMeta(html: string): {
   };
 }
 
+function preferRootIndexHtml(htmlFiles: ProjectFile[]): ProjectFile | undefined {
+  const exact =
+    htmlFiles.find((f) => f.path === "index.html") ??
+    htmlFiles.find((f) => f.path === "src/index.html");
+  if (exact) return exact;
+
+  const indexes = htmlFiles
+    .filter(
+      (f) =>
+        /(^|\/)index\.html$/i.test(f.path) &&
+        !f.path.includes("dist/") &&
+        !f.path.startsWith("public/"),
+    )
+    .sort(
+      (a, b) =>
+        a.path.split("/").length - b.path.split("/").length ||
+        a.path.localeCompare(b.path),
+    );
+  return indexes[0] ?? htmlFiles[0];
+}
+
+function buildStaticBusinessHints(
+  meta: {
+    title?: string;
+    description?: string;
+    headings: string[];
+  },
+  packageName?: string,
+): SiteModel["business"] {
+  const brandFromTitle = meta.title?.split(/\s+[—–|-]\s+/)[0]?.trim();
+  const tagline =
+    meta.title?.split(/\s+[—–|-]\s+/).slice(1).join(" — ").trim() ||
+    meta.description;
+  const topics: string[] = [];
+  if (tagline) topics.push(tagline);
+  if (meta.description && meta.description !== tagline) {
+    topics.push(meta.description);
+  }
+  for (const h of meta.headings.slice(0, 3)) {
+    if (h && h.length >= 8 && h.length <= 80) topics.push(h);
+  }
+
+  const blob = [meta.title, meta.description, ...meta.headings, packageName]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const audienceHints: string[] = [];
+  if (/\b(mcp|next\.?js|developer|api|sdk)\b/.test(blob)) {
+    audienceHints.push("Next.js developers and coding agents");
+  }
+  if (/\b(saas|software|platform)\b/.test(blob)) {
+    audienceHints.push("software buyers / developers");
+  }
+  if (/\b(agency|consult)\b/.test(blob)) {
+    audienceHints.push("service clients");
+  }
+  if (audienceHints.length === 0) {
+    audienceHints.push("general website visitors");
+  }
+
+  let confidence = 0.35;
+  if (meta.title) confidence += 0.15;
+  if (meta.description) confidence += 0.2;
+  if (meta.headings[0]) confidence += 0.1;
+
+  return {
+    name: brandFromTitle || packageName?.replace(/-website$/i, ""),
+    description: meta.description,
+    audienceHints,
+    topics: [...new Set(topics)].slice(0, 8),
+    packageName,
+    confidence: Math.min(confidence, 0.9),
+  };
+}
+
 export const genericAdapter: FrameworkAdapter = {
   id: "generic",
   detect(files: ProjectFile[]): number {
@@ -146,9 +221,7 @@ export const genericAdapter: FrameworkAdapter = {
       a.path.localeCompare(b.path),
     );
 
-    const indexHtml =
-      htmlFiles.find((f) => /(^|\/)index\.html$/i.test(f.path) && !f.path.includes("dist/")) ??
-      htmlFiles[0];
+    const indexHtml = preferRootIndexHtml(htmlFiles);
     const meta = indexHtml
       ? extractMeta(indexHtml.content)
       : {
@@ -209,12 +282,7 @@ export const genericAdapter: FrameworkAdapter = {
         types: [...new Set(allJsonLdTypes.length ? allJsonLdTypes : meta.jsonLdTypes)],
       },
       blog: { present: false, routes: [], postCount: 0 },
-      business: {
-        audienceHints: [],
-        topics: meta.title ? [meta.title] : [],
-        packageName: pkg.name,
-        confidence: isStaticSite ? 0.45 : 0.2,
-      },
+      business: buildStaticBusinessHints(meta, pkg.name),
       unsupportedReason: isStaticSite
         ? "Static HTML / Vite site: route inventory and basic SEO checks run; deep Next.js App Router analysis is limited."
         : "Unsupported stack for v1. QualityKit currently implements deep analysis for Next.js (App Router). Astro, Nuxt, and WordPress adapters are planned.",

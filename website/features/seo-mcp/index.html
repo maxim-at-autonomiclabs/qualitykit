@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Google Tag Manager -->
+    <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-PPSVMCXJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+    </script>
+    <title>SEO MCP for Next.js — QualityKit</title>
+    <meta
+      name="description"
+      content="QualityKit is an SEO MCP for Next.js codebases: audit defects, grow opportunities, advise-only diffs, and verify — in the repo where agents already work."
+    />
+    <link rel="canonical" href="https://qualitykit.dev/features/seo-mcp/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-PPSVMCXJ"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="brand" href="/">QualityKit</a>
+        <nav class="nav" aria-label="Primary">
+          <a href="/docs/">Docs</a>
+          <a href="/features/seo-mcp/">SEO MCP</a>
+          <a href="/pricing/">Pricing</a>
+          <a href="https://github.com/maxim-at-autonomiclabs/qualitykit">GitHub</a>
+        </nav>
+      </header>
+
+      <article class="doc">
+        <h1>SEO MCP for Next.js codebases</h1>
+        <p>
+          QualityKit is a Model Context Protocol server that audits SEO where the
+          code lives. Agents call <code>qualitykit.audit</code>,
+          <code>qualitykit.grow</code>, and <code>qualitykit.fix</code> — you approve
+          diffs; QualityKit never writes the repo.
+        </p>
+
+        <h2>What it does</h2>
+        <ul>
+          <li>Inventories routes, robots, sitemap, metadata, and schema</li>
+          <li>Separates defects from growth opportunities</li>
+          <li>Returns advise-only unified diffs for technical fixes</li>
+          <li>
+            Emits <strong>buildContracts</strong> for new landing pages so the host
+            agent implements them in your stack
+          </li>
+          <li>
+            Verifies findings and route presence, then records shipped changes when
+            Search Console is connected (Pro)
+          </li>
+        </ul>
+
+        <h2>How it works</h2>
+        <ol>
+          <li>Install the MCP in Cursor (or any MCP host)</li>
+          <li>Run <code>qualitykit.grow</code> for top impression-oriented changes</li>
+          <li>
+            Apply technical diffs from <code>qualitykit.fix</code>; implement page
+            contracts with your agent
+          </li>
+          <li>
+            Call <code>qualitykit.verify</code>, then
+            <code>visibility.mark_applied</code> after deploy
+          </li>
+        </ol>
+
+        <h2>Free locally. Pro for measurement.</h2>
+        <p>
+          Local audits, grow, fix, and verify stay free. Pro adds Search Console
+          sync, opportunity backlog, and change baselines so you can compare
+          impressions and clicks over time. Search Console data often lags 1–3
+          days, and period deltas are correlational — not a ranking guarantee.
+        </p>
+
+        <p>
+          <a class="btn btn-primary" href="/docs/">Get started</a>
+          <a class="btn btn-ghost" href="/pricing/">Pro pricing</a>
+        </p>
+      </article>
+
+      <footer class="site-footer">
+        <span>MIT · open source local MCP</span>
+        <span
+          ><a href="/docs/">Docs</a> ·
+          <a href="https://github.com/maxim-at-autonomiclabs/qualitykit"
+            >GitHub</a
+          ></span
+        >
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

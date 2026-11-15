@@ -72,12 +72,20 @@ npx -y qualitykit</code></pre>
         <h2>Primary tools</h2>
         <ul>
           <li><code>qualitykit.audit</code> — defects vs opportunities, route inventory, optional rendered HTML</li>
+          <li><code>qualitykit.grow</code> — grow impressions: why visibility is limited, top 10 changes, safe vs approval (GSC enrichment when Pro API key is set)</li>
           <li><code>qualitykit.ai_audit</code> — AI discoverability scores with evidence</li>
           <li><code>qualitykit.plan</code> — content briefs, blog plan, schema, links</li>
           <li><code>qualitykit.fix</code> — unified diffs / file specs (never writes the repo)</li>
           <li><code>qualitykit.verify</code> — fixed / remaining / regressed</li>
           <li><code>monitor.status</code> — hosted Pro run when <code>QUALITYKIT_API_KEY</code> is set; otherwise self-hosted stub</li>
-          <li><code>visibility.report</code> — stub until Search/AI visibility ships</li>
+          <li><code>visibility.report</code> — Search Console period metrics + ranked opportunities via Cloud when API key is set; otherwise <code>not_connected</code></li>
+        </ul>
+
+        <h2>Free vs Pro</h2>
+        <ul>
+          <li><strong>Free:</strong> audit → grow → approved fix → verify. Explains impression blockers from the codebase. No account. No OpenAI key inside QualityKit.</li>
+          <li><strong>Pro:</strong> daily crawl, run history, email regressions, <code>monitor.status</code>, plus Google Search Console connect/sync for the monitored site.</li>
+          <li><strong>GSC:</strong> last 28d vs prior 28d impressions/clicks, optional deploy baseline, and re-ranked opportunities in <code>visibility.report</code> / <code>qualitykit.grow</code> when <code>QUALITYKIT_API_KEY</code> + <code>QUALITYKIT_API_BASE</code> are set.</li>
         </ul>
 
         <p>

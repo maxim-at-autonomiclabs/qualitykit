@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-PPSVMCXJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+    </script>
+    <title>AEO MCP — AI discoverability audit — QualityKit</title>
+    <meta
+      name="description"
+      content="QualityKit’s AEO MCP checks crawlability, extractability, entity clarity, and citation readiness on your Next.js site — heuristic scores with evidence, not citation guarantees."
+    />
+    <link rel="canonical" href="https://qualitykit.dev/features/aeo-mcp/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-PPSVMCXJ"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="brand" href="/">QualityKit</a>
+        <nav class="nav" aria-label="Primary">
+          <a href="/docs/">Docs</a>
+          <a href="/features/seo-mcp/">SEO MCP</a>
+          <a href="/pricing/">Pricing</a>
+          <a href="https://github.com/maxim-at-autonomiclabs/qualitykit">GitHub</a>
+        </nav>
+      </header>
+
+      <article class="doc">
+        <h1>AEO MCP for AI discoverability</h1>
+        <p>
+          Call <code>qualitykit.ai_audit</code> to score how ready a site is for
+          AI systems to crawl, extract, and cite — with evidence strings you can
+          act on. Scores are heuristics; they do not predict citations or rankings.
+        </p>
+
+        <h2>What it scores</h2>
+        <ul>
+          <li>Crawlability and extractability of main content</li>
+          <li>Entity clarity (Organization / product signals)</li>
+          <li>Citation readiness and structured understanding</li>
+          <li>Topical coverage hints from the codebase</li>
+        </ul>
+
+        <h2>How it fits SEO MCP</h2>
+        <p>
+          Use AEO alongside <a href="/features/seo-mcp/">SEO MCP</a> and
+          <a href="/features/seo-aeo/">SEO + AEO</a>: fix indexability first, then
+          improve extractable answers and schema. Pair with
+          <a href="/guides/how-to-aeo-mcp/">the AEO how-to guide</a> for a concrete
+          session checklist.
+        </p>
+
+        <p>
+          <a class="btn btn-primary" href="/guides/how-to-aeo-mcp/">Read the guide</a>
+          <a class="btn btn-ghost" href="/docs/ai-audit/">AI audit docs</a>
+        </p>
+      </article>
+
+      <footer class="site-footer">
+        <span>MIT · open source local MCP</span>
+        <span><a href="/">Home</a> · <a href="/docs/">Docs</a></span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

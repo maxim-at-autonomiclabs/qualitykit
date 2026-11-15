@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-PPSVMCXJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+    </script>
+    <title>How to run an AEO MCP audit — QualityKit</title>
+    <meta
+      name="description"
+      content="Step-by-step: connect QualityKit MCP, run qualitykit.ai_audit and grow, approve fixes, verify, and optionally mark_applied with Pro Search Console."
+    />
+    <link
+      rel="canonical"
+      href="https://qualitykit.dev/guides/how-to-aeo-mcp/"
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-PPSVMCXJ"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="brand" href="/">QualityKit</a>
+        <nav class="nav" aria-label="Primary">
+          <a href="/docs/">Docs</a>
+          <a href="/features/seo-mcp/">SEO MCP</a>
+          <a href="/pricing/">Pricing</a>
+          <a href="https://github.com/maxim-at-autonomiclabs/qualitykit">GitHub</a>
+        </nav>
+      </header>
+
+      <article class="doc">
+        <h1>How to run an AEO MCP session</h1>
+        <p>
+          A practical checklist for AI discoverability with QualityKit. Prefer one
+          clear pass over mass-generating content.
+        </p>
+
+        <h2>1. Connect the MCP</h2>
+        <p>
+          Add QualityKit to Cursor (or your MCP host) with
+          <code>npx -y qualitykit</code>. Point tools at the absolute
+          <code>projectRoot</code> of your Next.js or static site.
+        </p>
+
+        <h2>2. Audit and AI audit</h2>
+        <ol>
+          <li>
+            <code>qualitykit.audit</code> — fix blocking indexability before new
+            pages
+          </li>
+          <li>
+            <code>qualitykit.ai_audit</code> — note low scores and evidence (not
+            citation guarantees)
+          </li>
+          <li>
+            <code>qualitykit.grow</code> — review <code>needsApproval</code> page
+            ideas
+          </li>
+        </ol>
+
+        <h2>3. Approve, then implement</h2>
+        <p>
+          Ask the agent to present grow ids before writing. Call
+          <code>qualitykit.fix</code> with approved finding or opportunity ids.
+          Apply technical diffs; implement buildContracts in your stack’s patterns.
+        </p>
+
+        <h2>4. Verify and record</h2>
+        <p>
+          <code>qualitykit.verify</code> with <code>opportunityIds</code> checks
+          route presence. After deploy, Pro users call
+          <code>visibility.mark_applied</code> so the backlog marks shipped and GSC
+          baselines are stored. Period deltas later are correlational.
+        </p>
+
+        <h2>Related</h2>
+        <p>
+          <a href="/features/aeo-mcp/">AEO MCP feature</a> ·
+          <a href="/docs/ai-audit/">AI audit docs</a> ·
+          <a href="/solutions/nextjs-developers/">Next.js developers</a>
+        </p>
+
+        <p>
+          <a class="btn btn-primary" href="/docs/">Get started</a>
+          <a class="btn btn-ghost" href="/features/aeo-mcp/">AEO MCP</a>
+        </p>
+      </article>
+
+      <footer class="site-footer">
+        <span>MIT · open source local MCP</span>
+        <span><a href="/">Home</a> · <a href="/docs/">Docs</a></span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

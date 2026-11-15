@@ -16,10 +16,62 @@ export const monitorStatusInputSchema = {
     .describe("Pro API key (or set QUALITYKIT_API_KEY env)"),
 };
 
-function cloudCreds(args: { apiBaseUrl?: string; apiKey?: string }) {
+export function cloudCreds(args: { apiBaseUrl?: string; apiKey?: string }) {
   const apiKey = args.apiKey || process.env.QUALITYKIT_API_KEY;
   const base = args.apiBaseUrl || process.env.QUALITYKIT_API_BASE;
   return { apiKey, base };
+}
+
+/** Programmatic mark-applied for verify → ship bridge. */
+export async function callMarkApplied(args: {
+  apiBaseUrl?: string;
+  apiKey?: string;
+  changeIds?: string[];
+  items?: Array<{ id: string; path?: string; query?: string }>;
+  label?: string;
+  alsoSiteBaseline?: boolean;
+}): Promise<
+  | { ok: true; data: Record<string, unknown> }
+  | { ok: false; error: string; missingCreds?: boolean }
+> {
+  const { apiKey, base } = cloudCreds(args);
+  if (!apiKey || !base) {
+    return {
+      ok: false,
+      missingCreds: true,
+      error: !apiKey
+        ? "No QUALITYKIT_API_KEY"
+        : "No QUALITYKIT_API_BASE",
+    };
+  }
+  try {
+    const res = await fetch(`${base.replace(/\/$/, "")}/api/gsc/applied`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-qualitykit-key": apiKey,
+      },
+      body: JSON.stringify({
+        changeIds: args.changeIds,
+        items: args.items,
+        label: args.label,
+        alsoSiteBaseline: args.alsoSiteBaseline,
+      }),
+    });
+    const data = (await res.json()) as Record<string, unknown>;
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: String(data.error || `HTTP ${res.status}`),
+      };
+    }
+    return { ok: true, data };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 export async function monitorStatus(args: {
@@ -279,40 +331,18 @@ export async function visibilityMarkApplied(args: {
   alsoSiteBaseline?: boolean;
 }) {
   try {
-    const { apiKey, base } = cloudCreds(args);
-
-    if (!apiKey || !base) {
-      return jsonResult({
-        ok: false,
-        tool: "visibility.mark_applied",
-        error: !apiKey
-          ? "No QUALITYKIT_API_KEY. Connect Pro + Search Console at https://app.qualitykit.dev, mint an MCP API key, then set QUALITYKIT_API_KEY and QUALITYKIT_API_BASE."
-          : "Set QUALITYKIT_API_BASE (or pass apiBaseUrl) to mark applied changes in Cloud.",
-        upgradeUrl: "https://qualitykit.dev",
-      }, true);
-    }
-
-    const res = await fetch(`${base.replace(/\/$/, "")}/api/gsc/applied`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-qualitykit-key": apiKey,
-      },
-      body: JSON.stringify({
-        changeIds: args.changeIds,
-        items: args.items,
-        label: args.label,
-        alsoSiteBaseline: args.alsoSiteBaseline,
-      }),
-    });
-    const data = (await res.json()) as Record<string, unknown>;
-    if (!res.ok) {
+    const result = await callMarkApplied(args);
+    if (!result.ok) {
       return jsonResult(
         {
           ok: false,
           tool: "visibility.mark_applied",
-          error: data.error || `HTTP ${res.status}`,
-          upgradeUrl: data.upgradeUrl,
+          error: result.missingCreds
+            ? result.error.includes("API_KEY")
+              ? "No QUALITYKIT_API_KEY. Connect Pro + Search Console at https://app.qualitykit.dev, mint an MCP API key, then set QUALITYKIT_API_KEY and QUALITYKIT_API_BASE."
+              : "Set QUALITYKIT_API_BASE (or pass apiBaseUrl) to mark applied changes in Cloud."
+            : result.error,
+          upgradeUrl: "https://qualitykit.dev",
         },
         true,
       );
@@ -320,7 +350,7 @@ export async function visibilityMarkApplied(args: {
     return jsonResult({
       ok: true,
       tool: "visibility.mark_applied",
-      ...data,
+      ...result.data,
       message:
         "Baselines saved for the listed changes. Call visibility.report after the next GSC sync (data often lags 1–3 days) to see per-change impression deltas. Deltas are correlational, not a ranking guarantee.",
     });

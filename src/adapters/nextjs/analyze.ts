@@ -327,16 +327,32 @@ function extractBusinessHints(
     packageName,
     home?.content.slice(0, 4000),
   ];
-  const topics = tokenize(...textBits).slice(0, 20);
-  const audienceHints: string[] = [];
   const blob = textBits.filter(Boolean).join(" ").toLowerCase();
+
+  const topics: string[] = [];
+  const titleTagline = metadata.rootTitle?.split(/\s+[—–|-]\s+/).slice(1).join(" — ").trim();
+  if (titleTagline) topics.push(titleTagline);
+  else if (metadata.rootTitle) topics.push(metadata.rootTitle);
+  if (metadata.rootDescription) topics.push(metadata.rootDescription);
+
+  // Keep a few useful tokens for pattern matching, but prefer phrases above
+  for (const token of tokenize(...textBits).slice(0, 12)) {
+    if (!topics.some((t) => t.toLowerCase().includes(token))) {
+      topics.push(token);
+    }
+  }
+
+  const audienceHints: string[] = [];
+  if (/\b(mcp|next\.?js|developer|api|sdk|coding agent)\b/.test(blob)) {
+    audienceHints.push("Next.js developers and coding agents");
+  }
   if (/saas|software|platform|api|developer/.test(blob)) {
     audienceHints.push("software buyers / developers");
   }
   if (/agency|consult|service/.test(blob)) {
     audienceHints.push("service clients");
   }
-  if (/shop|store|ecommerce|product/.test(blob)) {
+  if (/shop|store|ecommerce/.test(blob)) {
     audienceHints.push("online shoppers");
   }
   if (audienceHints.length === 0) {
@@ -349,11 +365,15 @@ function extractBusinessHints(
   if (home) confidence += 0.1;
   if (packageName) confidence += 0.05;
 
+  const brandName =
+    metadata.rootTitle?.split(/\s+[—–|-]\s+/)[0]?.trim() ??
+    packageName;
+
   return {
-    name: metadata.rootTitle ?? packageName,
+    name: brandName,
     description: metadata.rootDescription,
     audienceHints,
-    topics,
+    topics: [...new Set(topics)].slice(0, 16),
     packageName,
     confidence: Math.min(confidence, 0.95),
   };

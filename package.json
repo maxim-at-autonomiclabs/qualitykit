@@ -27,6 +27,8 @@
     "dev": "tsx src/index.ts",
     "test": "npm run build:engine && vitest run",
     "test:watch": "vitest",
+    "test:meta": "npm run build && node scripts/meta-smoke.mjs",
+    "test:all": "npm test && npm run test:meta && npm test --prefix ../qualitykit-cloud",
     "prepublishOnly": "npm run build"
   },
   "engines": {

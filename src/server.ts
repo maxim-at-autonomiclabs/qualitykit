@@ -45,6 +45,14 @@ import {
   visibilityReport,
   visibilityReportInputSchema,
 } from "./tools/monitor.js";
+import {
+  opportunitiesList,
+  opportunitiesListInputSchema,
+  opportunitiesSync,
+  opportunitiesSyncInputSchema,
+  opportunitiesUpdate,
+  opportunitiesUpdateInputSchema,
+} from "./tools/opportunities.js";
 import { schemaPlan, schemaPlanInputSchema } from "./tools/schema.js";
 import { seoValidate, validateInputSchema } from "./tools/validate.js";
 
@@ -107,7 +115,7 @@ export function createServer(): McpServer {
     {
       title: "QualityKit fix (advise-only)",
       description:
-        "Generate unified diffs / file specs for selected findings. Never writes the repo. Use safeAutoOnly for low-risk technical fixes.",
+        "Technical findings → unified diffs/FileSpecs. page-* / gsc-query-* opportunityIds → buildContracts for the host agent (no invented page files). Never writes the repo. Use safeAutoOnly for low-risk technical fixes only.",
       inputSchema: qualitykitFixInputSchema,
     },
     qualitykitFix,
@@ -118,7 +126,7 @@ export function createServer(): McpServer {
     {
       title: "QualityKit verify",
       description:
-        "Re-audit after changes or against proposedFiles. Reports fixed, remaining, and regressed finding IDs.",
+        "Re-audit after changes or against proposedFiles. Checks finding IDs and optional opportunityIds (route presence). Returns readyToShip; with Pro credentials, records mark_applied / shipped.",
       inputSchema: qualitykitVerifyInputSchema,
     },
     qualitykitVerify,
@@ -155,6 +163,39 @@ export function createServer(): McpServer {
       inputSchema: visibilityMarkAppliedInputSchema,
     },
     visibilityMarkApplied,
+  );
+
+  server.registerTool(
+    "opportunities.list",
+    {
+      title: "List opportunity backlog",
+      description:
+        "Pro: list persisted grow/GSC opportunities (found|approved|shipped|snoozed). Requires QUALITYKIT_API_KEY + QUALITYKIT_API_BASE.",
+      inputSchema: opportunitiesListInputSchema,
+    },
+    opportunitiesList,
+  );
+
+  server.registerTool(
+    "opportunities.update",
+    {
+      title: "Update opportunity status",
+      description:
+        "Pro: set opportunity status to found|approved|shipped|snoozed (snooze defaults to 7 days). Requires QUALITYKIT_API_KEY + QUALITYKIT_API_BASE.",
+      inputSchema: opportunitiesUpdateInputSchema,
+    },
+    opportunitiesUpdate,
+  );
+
+  server.registerTool(
+    "opportunities.sync",
+    {
+      title: "Sync opportunity backlog",
+      description:
+        "Pro: upsert grow topChanges and/or live GSC ranked opportunities into the Cloud backlog. Pass projectRoot to run local grow, or items. Returns counts by status (found N). Requires QUALITYKIT_API_KEY + QUALITYKIT_API_BASE.",
+      inputSchema: opportunitiesSyncInputSchema,
+    },
+    opportunitiesSync,
   );
 
   // Secondary / specialized tools
@@ -305,11 +346,12 @@ export function createServer(): McpServer {
               "2. Call qualitykit.grow — why impressions are limited, top 10 changes, safe vs approval",
               "3. Optionally call qualitykit.ai_audit and qualitykit.plan for briefs/schema/links",
               "4. Present defects and grow.topChanges — use impact, confidence, effort, fixSafety (no volumes or impression counts)",
-              "5. Call qualitykit.fix for approved finding IDs (safeAutoOnly for low-risk)",
-              "6. Apply diffs yourself after user approval",
-              "7. Call qualitykit.verify",
-              "8. After deploy (Pro + GSC): visibility.mark_applied with topChanges ids (include path/query when available)",
-              "9. Later: visibility.report for period metrics and changeOutcomes (GSC lags ~1–3 days; deltas are correlational)",
+              "5. Call qualitykit.fix: finding IDs → diffs (safeAutoOnly for low-risk); page-* / gsc ids → buildContracts (you implement in-repo)",
+              "6. Apply technical diffs and implement buildContracts yourself after user approval — match existing project patterns",
+              "7. Call qualitykit.verify with findingIds and/or opportunityIds — readyToShip; with Pro key this can mark_applied",
+              "8. After grow (Pro): opportunities.sync (or rely on grow auto-sync) so the dashboard backlog shows found N",
+              "9. If verify did not ship: visibility.mark_applied with readyToShip ids (include path/query) — ships backlog rows",
+              "10. Later: visibility.report / opportunities.list for period metrics and backlog status (GSC lags ~1–3 days; deltas are correlational)",
               "",
               "Rules:",
               "- Separate defects from opportunities (missing blog is not an error)",
