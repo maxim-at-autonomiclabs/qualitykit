@@ -1,5 +1,10 @@
 import { Hono } from "hono";
-import { isAuthUser, requirePro, requireUser } from "./auth.js";
+import {
+  CLERK_PROXY_URL,
+  isAuthUser,
+  requirePro,
+  requireUser,
+} from "./auth.js";
 import {
   countActiveSites,
   createSite,
@@ -45,8 +50,8 @@ export function createApp() {
   app.get("/api/config", (c) =>
     c.json({
       clerkPublishableKey: c.env.CLERK_PUBLISHABLE_KEY,
-      // Proxy lives on the Clerk primary domain (apex), not app subdomain
-      clerkProxyUrl: "https://qualitykit.dev/__clerk",
+      // Proxy must live on the Clerk primary domain (apex)
+      clerkProxyUrl: CLERK_PROXY_URL,
       appUrl: c.env.APP_URL,
       proPriceUsd: 29,
     }),
@@ -56,7 +61,18 @@ export function createApp() {
     const user = await requireUser(c);
     if (!isAuthUser(user)) return user;
     const sites = await listSites(c.env.DB, user.id);
-    return c.json({ user, sites });
+    const row = await c.env.DB.prepare(
+      "SELECT stripe_customer_id FROM users WHERE id = ?",
+    )
+      .bind(user.id)
+      .first<{ stripe_customer_id: string | null }>();
+    return c.json({
+      user: {
+        ...user,
+        hasBillingCustomer: Boolean(row?.stripe_customer_id),
+      },
+      sites,
+    });
   });
 
   app.post("/api/sites", async (c) => {

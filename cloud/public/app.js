@@ -40,10 +40,9 @@ async function loadClerk() {
   }
 
   const proxyUrl = (
-    config.clerkProxyUrl || `${location.origin}/__clerk`
+    config.clerkProxyUrl || "https://qualitykit.dev/__clerk"
   ).replace(/\/$/, "");
 
-  // ClerkJS v6: UI is a separate @clerk/ui bundle (needed for openSignIn).
   const uiUrls = [
     `${proxyUrl}/npm/@clerk/ui@1/dist/ui.browser.js`,
     "https://cdn.jsdelivr.net/npm/@clerk/ui@1/dist/ui.browser.js",
@@ -62,7 +61,6 @@ async function loadClerk() {
     throw new Error("Failed to load Clerk UI bundle (@clerk/ui).");
   }
 
-  // Core SDK via ESM (headless); UI attached via load({ ui }).
   const mod = await import(
     /* @vite-ignore */ "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@6.43.1/+esm"
   );
@@ -82,7 +80,7 @@ async function loadClerk() {
 
 async function api(path, opts = {}) {
   const clerk = window.__qkClerk;
-  const token = await clerk.session?.getToken();
+  const token = await clerk.session?.getToken({ skipCache: true });
   const headers = {
     "Content-Type": "application/json",
     ...(opts.headers || {}),
@@ -99,10 +97,36 @@ async function api(path, opts = {}) {
   return data;
 }
 
+function setProUi(isPro, hasBillingCustomer) {
+  const proTools = document.getElementById("pro-tools");
+  const freeNote = document.getElementById("free-note");
+  const upgrade = document.getElementById("upgrade");
+  const portal = document.getElementById("portal");
+
+  proTools.hidden = !isPro;
+  freeNote.hidden = isPro;
+  upgrade.hidden = isPro;
+  portal.hidden = !isPro && !hasBillingCustomer;
+  if (isPro) {
+    upgrade.textContent = "Manage plan";
+    upgrade.hidden = true;
+  }
+}
+
 async function refresh() {
   const me = await api("/api/me");
+  const isPro = me.user.plan === "pro";
   document.getElementById("plan-line").textContent =
     `Signed in as ${me.user.email} · plan: ${me.user.plan}`;
+
+  setProUi(isPro, Boolean(me.user.hasBillingCustomer));
+
+  if (!isPro) {
+    document.getElementById("sites").innerHTML = "";
+    document.getElementById("latest").textContent = "";
+    return me;
+  }
+
   const sitesEl = document.getElementById("sites");
   sitesEl.innerHTML = (me.sites || [])
     .map(
@@ -129,44 +153,68 @@ async function refresh() {
       );
     };
   });
+  return me;
 }
 
 async function main() {
   const status = document.getElementById("status");
   try {
     const clerk = await loadClerk();
-    status.textContent = clerk.user
-      ? "Signed in"
-      : "Sign in to manage Pro monitoring";
-    document.getElementById("panel").hidden = !clerk.user;
-    document.getElementById("sign-in").hidden = !!clerk.user;
-    document.getElementById("sign-out").hidden = !clerk.user;
 
-    document.getElementById("sign-in").onclick = () =>
-      clerk.openSignIn({ forceRedirectUrl: "/app.html" });
-    document.getElementById("sign-out").onclick = async () => {
-      await clerk.signOut();
-      location.reload();
+    const renderSignedOut = () => {
+      status.textContent = "Sign in to manage Pro monitoring";
+      document.getElementById("panel").hidden = true;
+      document.getElementById("sign-in").hidden = false;
+      document.getElementById("sign-out").hidden = true;
     };
 
-    if (!clerk.user) return;
+    const renderSignedIn = async () => {
+      status.textContent = "Signed in";
+      document.getElementById("panel").hidden = false;
+      document.getElementById("sign-in").hidden = true;
+      document.getElementById("sign-out").hidden = false;
+      try {
+        // Wait briefly for session token after handshake / redirect
+        for (let i = 0; i < 8 && !clerk.session; i++) {
+          await new Promise((r) => setTimeout(r, 150));
+        }
+        await clerk.session?.getToken({ skipCache: true });
+        await refresh();
+      } catch (err) {
+        status.textContent = `Signed in, but API auth failed: ${err.message}${
+          err.payload?.reason ? ` (${err.payload.reason})` : ""
+        }. Try sign out → sign in again.`;
+        console.error(err);
+      }
+    };
 
-    document.getElementById("panel").hidden = false;
-    try {
-      await refresh();
-    } catch (err) {
-      status.textContent = `Signed in, but API auth failed: ${err.message}${
-        err.payload?.reason ? ` (${err.payload.reason})` : ""
-      }. Try sign out → sign in again.`;
-      console.error(err);
-    }
+    document.getElementById("sign-in").onclick = () =>
+      clerk.openSignIn({
+        forceRedirectUrl: `${location.origin}/app.html`,
+        fallbackRedirectUrl: `${location.origin}/app.html`,
+      });
+    document.getElementById("sign-out").onclick = async () => {
+      await clerk.signOut({ redirectUrl: `${location.origin}/app.html` });
+    };
+
+    if (clerk.user) await renderSignedIn();
+    else renderSignedOut();
+
+    clerk.addListener(({ user }) => {
+      if (user) renderSignedIn();
+      else renderSignedOut();
+    });
 
     document.getElementById("upgrade").onclick = async () => {
       try {
+        status.textContent = "Starting checkout…";
         const { url } = await api("/api/billing/checkout", { method: "POST" });
         location.href = url;
       } catch (err) {
-        alert(err.message);
+        status.textContent = `Checkout failed: ${err.message}${
+          err.payload?.reason ? ` (${err.payload.reason})` : ""
+        }`;
+        alert(status.textContent);
       }
     };
     document.getElementById("portal").onclick = async () => {

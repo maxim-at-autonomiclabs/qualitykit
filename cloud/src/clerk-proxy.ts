@@ -1,3 +1,4 @@
+import { CLERK_PROXY_URL } from "./auth.js";
 import type { Env } from "./env.js";
 
 const PROXY_PREFIX = "/__clerk";
@@ -18,7 +19,8 @@ export async function proxyClerkFrontendApi(
 
   const headers = new Headers(request.headers);
   headers.delete("host");
-  headers.set("Clerk-Proxy-Url", `${env.APP_URL}${PROXY_PREFIX}`);
+  // Always advertise the primary-domain proxy URL (Clerk Dashboard config).
+  headers.set("Clerk-Proxy-Url", CLERK_PROXY_URL);
   headers.set("Clerk-Secret-Key", env.CLERK_SECRET_KEY);
   const clientIp =
     request.headers.get("CF-Connecting-IP") ||

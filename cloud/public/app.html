@@ -31,7 +31,7 @@
     ></noscript>
     <div class="wrap">
       <header class="top">
-        <a class="brand" href="/">QualityKit</a>
+        <a class="brand" href="https://qualitykit.dev">QualityKit</a>
         <nav>
           <a href="/pricing.html">Pricing</a>
           <button class="linkish" id="sign-in">Sign in</button>
@@ -39,25 +39,30 @@
         </nav>
       </header>
       <main class="doc" id="app">
-        <p id="status">Loading Clerk…</p>
+        <p id="status">Loading…</p>
         <div id="panel" hidden>
           <h1>Monitoring</h1>
           <p id="plan-line"></p>
-          <div class="row">
-            <button class="btn primary" id="upgrade">Upgrade / Checkout</button>
-            <button class="btn ghost" id="portal">Billing portal</button>
-            <button class="btn ghost" id="mint-key">Create MCP API key</button>
+          <div class="row" id="billing-row">
+            <button class="btn primary" id="upgrade">Upgrade to Pro — $29/mo</button>
+            <button class="btn ghost" id="portal" hidden>Billing portal</button>
           </div>
-          <pre id="key-out" class="mono" hidden></pre>
-          <form id="site-form" class="site-form">
-            <label>
-              Production URL
-              <input name="url" type="url" placeholder="https://example.com" required />
-            </label>
-            <button class="btn primary" type="submit">Add site &amp; queue crawl</button>
-          </form>
-          <div id="sites"></div>
-          <div id="latest" class="mono"></div>
+          <p id="free-note" class="lede" hidden>
+            Add a production site and force crawls after you upgrade. The local MCP stays free.
+          </p>
+          <div id="pro-tools" hidden>
+            <button class="btn ghost" id="mint-key">Create MCP API key</button>
+            <pre id="key-out" class="mono" hidden></pre>
+            <form id="site-form" class="site-form">
+              <label>
+                Production URL
+                <input name="url" type="url" placeholder="https://example.com" required />
+              </label>
+              <button class="btn primary" type="submit">Add site &amp; force crawl</button>
+            </form>
+            <div id="sites"></div>
+            <div id="latest" class="mono"></div>
+          </div>
         </div>
       </main>
     </div>
