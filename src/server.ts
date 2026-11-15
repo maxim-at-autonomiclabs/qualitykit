@@ -26,6 +26,10 @@ import {
   qualitykitFixInputSchema,
 } from "./tools/qualitykit-fix.js";
 import {
+  qualitykitGrow,
+  qualitykitGrowInputSchema,
+} from "./tools/qualitykit-grow.js";
+import {
   qualitykitPlan,
   qualitykitPlanInputSchema,
 } from "./tools/qualitykit-plan.js";
@@ -36,6 +40,8 @@ import {
 import {
   monitorStatus,
   monitorStatusInputSchema,
+  visibilityMarkApplied,
+  visibilityMarkAppliedInputSchema,
   visibilityReport,
   visibilityReportInputSchema,
 } from "./tools/monitor.js";
@@ -86,6 +92,17 @@ export function createServer(): McpServer {
   );
 
   server.registerTool(
+    "qualitykit.grow",
+    {
+      title: "QualityKit grow impressions",
+      description:
+        "Flagship impressions mode: why visibility is limited, top 10 changes, and which are safe to auto-fix. Offline and advise-only — no keyword volumes or Search Console data (searchData stays not_connected).",
+      inputSchema: qualitykitGrowInputSchema,
+    },
+    qualitykitGrow,
+  );
+
+  server.registerTool(
     "qualitykit.fix",
     {
       title: "QualityKit fix (advise-only)",
@@ -123,10 +140,21 @@ export function createServer(): McpServer {
     {
       title: "Visibility report (stub)",
       description:
-        "Placeholder for Search Console / AI visibility (Phase 3+). Always returns not_connected for now.",
+        "Search Console growth via QualityKit Cloud when QUALITYKIT_API_KEY + QUALITYKIT_API_BASE are set. Pass period 7d|28d|90d|365d for % deltas, trend, series summary, ranked opportunities, and changeOutcomes. Otherwise not_connected stub.",
       inputSchema: visibilityReportInputSchema,
     },
     visibilityReport,
+  );
+
+  server.registerTool(
+    "visibility.mark_applied",
+    {
+      title: "Mark GSC recommendations applied",
+      description:
+        "After grow → fix → verify (and deploy), snapshot Search Console metrics for grow topChanges ids so later visibility.report shows per-change impression deltas. Requires QUALITYKIT_API_KEY + QUALITYKIT_API_BASE. GSC data often lags 1–3 days.",
+      inputSchema: visibilityMarkAppliedInputSchema,
+    },
+    visibilityMarkApplied,
   );
 
   // Secondary / specialized tools
@@ -246,7 +274,7 @@ export function createServer(): McpServer {
     {
       title: "Audit site for SEO and AEO",
       description:
-        "Workflow: qualitykit.audit → ai_audit → plan → present backlog → fix diffs → apply approved → verify.",
+        "Workflow: qualitykit.audit → grow → optional plan → fix diffs → apply approved → verify.",
       argsSchema: {
         projectRoot: z
           .string()
@@ -274,20 +302,23 @@ export function createServer(): McpServer {
               "",
               "Workflow:",
               "1. Call qualitykit.audit (optionally includeRendered with siteUrl)",
-              "2. Call qualitykit.ai_audit",
-              "3. Call qualitykit.plan",
-              "4. Present defects first, then opportunities — use severity, impact, confidence, effort, fixSafety (no decimal scores)",
+              "2. Call qualitykit.grow — why impressions are limited, top 10 changes, safe vs approval",
+              "3. Optionally call qualitykit.ai_audit and qualitykit.plan for briefs/schema/links",
+              "4. Present defects and grow.topChanges — use impact, confidence, effort, fixSafety (no volumes or impression counts)",
               "5. Call qualitykit.fix for approved finding IDs (safeAutoOnly for low-risk)",
               "6. Apply diffs yourself after user approval",
               "7. Call qualitykit.verify",
+              "8. After deploy (Pro + GSC): visibility.mark_applied with topChanges ids (include path/query when available)",
+              "9. Later: visibility.report for period metrics and changeOutcomes (GSC lags ~1–3 days; deltas are correlational)",
               "",
               "Rules:",
               "- Separate defects from opportunities (missing blog is not an error)",
+              "- If indexability is blocked, fix robots before recommending new pages",
               "- Do not mass-generate articles",
-              "- Do not invent authors, stats, or competitor claims",
+              "- Do not invent authors, stats, keyword volumes, or competitor claims",
               "- Ask before changing AI crawler allow/disallow rules",
               "- Do not claim FAQ schema or llms.txt guarantee AI visibility",
-              "- Do not claim ranking wins without measurement caveats",
+              "- Do not claim causal ranking or impression guarantees from changeOutcomes",
               "- Read qualitykit://rules/technical-seo, qualitykit://rules/aeo, and qualitykit://rules/content when unsure",
             ].join("\n"),
           },
