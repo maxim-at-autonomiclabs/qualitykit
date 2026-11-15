@@ -88,6 +88,20 @@ directory = "./website/dist"
 binding = "ASSETS"
 html_handling = "auto-trailing-slash"
 not_found_handling = "404-page"
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
+
+[observability.traces]
+enabled = false
+head_sampling_rate = 1
+persist = true
+
+[observability.issues]
+enabled = false
 `,
     );
     return;
@@ -129,6 +143,20 @@ directory = "./cloud/public"
 binding = "ASSETS"
 html_handling = "none"
 not_found_handling = "404-page"
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
+
+[observability.traces]
+enabled = false
+head_sampling_rate = 1
+persist = true
+
+[observability.issues]
+enabled = false
 
 [vars]
 APP_URL = "https://app.qualitykit.dev"
