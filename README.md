@@ -100,6 +100,24 @@ Local code fixes stay free. Hosted intelligence is where Pro belongs — not cha
 - Node.js 18+
 - Deep analysis: **Next.js** (App Router for blog scaffolding)
 
+## Website (qualitykit.dev)
+
+The marketing/docs site lives in [`website/`](website/) and deploys to **Cloudflare Workers** (static assets).
+
+Live Worker: [qualitykit-web.maxim-a63.workers.dev](https://qualitykit-web.maxim-a63.workers.dev)
+
+```bash
+cd website
+npm install
+npm run deploy
+```
+
+### Custom domain
+
+1. Add the `qualitykit.dev` zone to the same Cloudflare account used by Wrangler.
+2. Uncomment the `routes` custom domains in [`website/wrangler.toml`](website/wrangler.toml).
+3. Run `npm run deploy` again (or attach the domain in Workers → qualitykit-web → Custom Domains).
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Security reports: [SECURITY.md](SECURITY.md).
