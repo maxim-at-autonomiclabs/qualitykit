@@ -30,6 +30,19 @@ Or with Cursor, point MCP at `node` + `dist/index.js` after a build.
 
 Hosted Pro (app.qualitykit.dev) lives in a separate private repository.
 
+### Publishing `@qualitykit/engine`
+
+Private Cloud installs the engine from the `engine-publish` git branch (or from npm after you publish).
+
+```bash
+# After engine changes on main — refresh the git install branch:
+node scripts/refresh-engine-publish.mjs
+
+# Optional npm registry publish (requires npm login + package access):
+npm run publish:engine
+# or: Actions → Publish @qualitykit/engine (needs NPM_TOKEN secret)
+```
+
 ## Guidelines
 
 - Keep the MCP **advise-only** — never write the target repository from the server.
