@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Docs — QualityKit</title>
+    <meta
+      name="description"
+      content="Install QualityKit, configure Cursor MCP, and run audit, AI audit, plan, fix, and verify."
+    />
+    <link rel="canonical" href="https://qualitykit.dev/docs/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="brand" href="/">QualityKit</a>
+        <nav class="nav" aria-label="Primary">
+          <a href="/docs/">Docs</a>
+          <a href="/docs/ai-audit/">AI Audit</a>
+          <a href="https://github.com/maxim-at-autonomiclabs/qualitykit">GitHub</a>
+        </nav>
+      </header>
+
+      <article class="doc">
+        <h1>Docs</h1>
+        <p>
+          QualityKit is a read-only MCP server. It audits Next.js repositories, scores AI readiness, and proposes advise-only fixes. Your coding agent applies changes.
+        </p>
+
+        <h2>Install</h2>
+        <pre><code>npm install -g qualitykit
+# or
+npx -y qualitykit</code></pre>
+
+        <h2>Cursor MCP</h2>
+        <pre><code>{
+  "mcpServers": {
+    "qualitykit": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "qualitykit"]
+    }
+  }
+}</code></pre>
+
+        <h2>Primary tools</h2>
+        <ul>
+          <li><code>qualitykit.audit</code> — defects vs opportunities, route inventory, optional rendered HTML</li>
+          <li><code>qualitykit.ai_audit</code> — AI discoverability scores with evidence</li>
+          <li><code>qualitykit.plan</code> — content briefs, blog plan, schema, links</li>
+          <li><code>qualitykit.fix</code> — unified diffs / file specs (never writes the repo)</li>
+          <li><code>qualitykit.verify</code> — fixed / remaining / regressed</li>
+        </ul>
+
+        <h2>Safety</h2>
+        <ul>
+          <li>Advise-only: no automatic file writes</li>
+          <li>Absolute <code>projectRoot</code>; skips <code>.env*</code> and common secrets</li>
+          <li>Ask before changing AI crawler allow/disallow rules</li>
+          <li>No ranking or citation guarantees</li>
+        </ul>
+
+        <p><a href="/docs/ai-audit/">AI Audit Mode →</a></p>
+      </article>
+
+      <footer class="site-footer">
+        <span>MIT · <a href="https://github.com/maxim-at-autonomiclabs/qualitykit">GitHub</a></span>
+        <span><a href="/">Home</a></span>
+      </footer>
+    </div>
+  </body>
+</html>

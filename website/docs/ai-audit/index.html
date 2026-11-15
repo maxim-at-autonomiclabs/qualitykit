@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Audit Mode — QualityKit</title>
+    <meta
+      name="description"
+      content="How QualityKit AI Audit Mode scores crawlability, extractability, entity clarity, and citation readiness."
+    />
+    <link rel="canonical" href="https://qualitykit.dev/docs/ai-audit/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="brand" href="/">QualityKit</a>
+        <nav class="nav" aria-label="Primary">
+          <a href="/docs/">Docs</a>
+          <a href="/docs/ai-audit/">AI Audit</a>
+          <a href="https://github.com/maxim-at-autonomiclabs/qualitykit">GitHub</a>
+        </nav>
+      </header>
+
+      <article class="doc">
+        <h1>AI Audit Mode</h1>
+        <p>
+          <code>qualitykit.ai_audit</code> evaluates whether AI search systems can discover, understand, extract, and cite your content — using deterministic heuristics and evidence, not marketing scores.
+        </p>
+
+        <h2>What it scores</h2>
+        <ul>
+          <li><strong>Crawlability</strong> — robots, AI bot rules, sitemap, route inventory</li>
+          <li><strong>Extractability</strong> — clear definitions, headings, answer-shaped copy</li>
+          <li><strong>Entity clarity</strong> — consistent brand, audience, and schema signals</li>
+          <li><strong>Citation readiness</strong> — authors, dates, verification markers, thin pages</li>
+          <li><strong>Structured understanding</strong> — valid JSON-LD aligned with visible content</li>
+          <li><strong>Topical coverage</strong> — gaps like comparison, use-case, docs, FAQ</li>
+        </ul>
+
+        <h2>Caveats</h2>
+        <ul>
+          <li>Scores do <strong>not</strong> predict rankings or AI citations</li>
+          <li>FAQ schema and <code>llms.txt</code> are optional assessments — never required</li>
+          <li>Providers (Google AI, ChatGPT, Perplexity, Copilot) do not share one ranking model</li>
+          <li>Pass <code>includeRendered</code> + <code>siteUrl</code> only when you want live HTML checks</li>
+        </ul>
+
+        <p><a href="/docs/">← Back to docs</a></p>
+      </article>
+
+      <footer class="site-footer">
+        <span>MIT · open source</span>
+        <span><a href="/">Home</a></span>
+      </footer>
+    </div>
+  </body>
+</html>

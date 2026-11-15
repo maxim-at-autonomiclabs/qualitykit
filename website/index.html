@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QualityKit — SEO + AEO MCP for codebases</title>
+    <meta
+      name="description"
+      content="Open-source MCP that audits Next.js sites for SEO and AI discoverability, then proposes advise-only fixes."
+    />
+    <link rel="canonical" href="https://qualitykit.dev/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site-header">
+        <a class="brand" href="/">QualityKit</a>
+        <nav class="nav" aria-label="Primary">
+          <a href="/docs/">Docs</a>
+          <a href="/docs/ai-audit/">AI Audit</a>
+          <a href="https://github.com/maxim-at-autonomiclabs/qualitykit">GitHub</a>
+        </nav>
+      </header>
+
+      <main class="hero">
+        <div>
+          <p class="brand-hero">QualityKit</p>
+          <h1>Audit SEO and AI visibility where the code lives.</h1>
+          <p class="lede">
+            An open-source MCP for Next.js: find defects, score AI readiness, propose diffs — without writing your repo.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="/docs/">Get started</a>
+            <a
+              class="btn btn-ghost"
+              href="https://github.com/maxim-at-autonomiclabs/qualitykit"
+              >GitHub</a
+            >
+            <a class="btn btn-ghost" href="https://www.npmjs.com/package/qualitykit"
+              >npm</a
+            >
+          </div>
+        </div>
+
+        <aside class="audit-panel" aria-label="Example audit output" data-panel>
+          <div class="label">qualitykit.audit · bare-app</div>
+          <div class="row">
+            <span>summary</span><span>4 defects · 6 opportunities</span>
+          </div>
+          <div class="row">
+            <span class="sev-med">defect</span
+            ><span>missing-metadatabase <span class="kind">medium</span></span>
+          </div>
+          <div class="row">
+            <span class="sev-med">defect</span
+            ><span>missing-sitemap <span class="kind">medium</span></span>
+          </div>
+          <div class="row">
+            <span class="sev-info">opportunity</span
+            ><span>missing-robots <span class="kind">info</span></span>
+          </div>
+          <div class="row">
+            <span class="sev-info">opportunity</span
+            ><span>no-blog <span class="kind">info</span></span>
+          </div>
+          <div class="row">
+            <span>ai_audit</span
+            ><span>crawl 60 · extract 90 · cite 25</span>
+          </div>
+        </aside>
+      </main>
+
+      <section class="section">
+        <h2>Built for agents that ship fixes</h2>
+        <p class="intro">
+          Connect QualityKit in Cursor or any MCP host. It reads the codebase, separates real defects from growth opportunities, and returns unified diffs you approve.
+        </p>
+        <pre><code>npx -y qualitykit</code></pre>
+      </section>
+
+      <footer class="site-footer">
+        <span>MIT · open source local MCP</span>
+        <span
+          ><a href="/docs/">Docs</a> ·
+          <a href="https://github.com/maxim-at-autonomiclabs/qualitykit"
+            >GitHub</a
+          ></span
+        >
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
