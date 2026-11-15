@@ -32,15 +32,15 @@ Hosted Pro (app.qualitykit.dev) lives in a separate private repository.
 
 ### Publishing `@qualitykit/engine`
 
-Private Cloud installs the engine from the `engine-publish` git branch (or from npm after you publish).
+Private Cloud depends on the npm package [`@qualitykit/engine`](https://www.npmjs.com/package/@qualitykit/engine).
 
 ```bash
-# After engine changes on main — refresh the git install branch:
-node scripts/refresh-engine-publish.mjs
-
-# Optional npm registry publish (requires npm login + package access):
+# After engine changes on main:
 npm run publish:engine
 # or: Actions → Publish @qualitykit/engine (needs NPM_TOKEN secret)
+
+# Optional fallback for git installs:
+node scripts/refresh-engine-publish.mjs
 ```
 
 ## Guidelines
