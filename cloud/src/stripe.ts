@@ -58,6 +58,7 @@ export async function createCheckoutSession(
     cancel_url: `${env.APP_URL}/pricing.html?checkout=cancel`,
     metadata: { qualitykit_user_id: opts.userId },
     subscription_data: {
+      trial_period_days: 7,
       metadata: { qualitykit_user_id: opts.userId },
     },
   });
@@ -73,7 +74,7 @@ export async function createPortalSession(
   const stripe = getStripe(env);
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
-    return_url: `${env.APP_URL}/app`,
+    return_url: `${env.APP_URL}/app.html`,
   });
   return session.url;
 }

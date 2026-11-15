@@ -78,7 +78,6 @@ async function loadClerk() {
   return clerk;
 }
 
-/** Dedupe concurrent getToken calls; never skipCache (that 429s Clerk). */
 let tokenInflight = null;
 async function getSessionToken() {
   const session = window.__qkClerk?.session;
@@ -124,16 +123,105 @@ function setProUi(isPro, hasBillingCustomer) {
   const freeNote = document.getElementById("free-note");
   const upgrade = document.getElementById("upgrade");
   const portal = document.getElementById("portal");
+  const mintKey = document.getElementById("mint-key");
 
   proTools.hidden = !isPro;
   freeNote.hidden = isPro;
   upgrade.hidden = isPro;
-  portal.hidden = !isPro && !hasBillingCustomer;
+  portal.hidden = !isPro;
+  mintKey.hidden = !isPro;
+
+  // Belt-and-suspenders if CSS ever fights [hidden]
+  upgrade.style.display = isPro ? "none" : "";
+  if (!isPro) {
+    upgrade.textContent = "Start 7-day free trial";
+  }
+  if (isPro && !hasBillingCustomer) {
+    // Still Pro (e.g. manually set) — portal may 400; keep it available after Stripe
+  }
+}
+
+function renderFindings(findings) {
+  const el = document.getElementById("crawl-findings");
+  if (!findings?.length) {
+    el.innerHTML = `<p class="lede">No findings in this run.</p>`;
+    return;
+  }
+  el.innerHTML = findings
+    .map((f) => {
+      const kind = f.kind || "finding";
+      const sev = f.severity || "info";
+      return `<article class="finding">
+        <strong><span class="badge ${kind}">${kind}</span>${escapeHtml(f.title || f.finding_id)}</strong>
+        <div class="meta">${escapeHtml(sev)} · ${escapeHtml(f.finding_id || f.id || "")} · ${escapeHtml(f.status || "")}</div>
+      </article>`;
+    })
+    .join("");
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+let pollTimer = null;
+function stopPoll() {
+  if (pollTimer) {
+    clearTimeout(pollTimer);
+    pollTimer = null;
+  }
+}
+
+async function showLatest(siteId, { poll = false } = {}) {
+  const panel = document.getElementById("crawl-panel");
+  const statusEl = document.getElementById("crawl-status");
+  const summaryEl = document.getElementById("crawl-summary");
+  panel.hidden = false;
+  statusEl.textContent = "Loading crawl…";
+  summaryEl.hidden = true;
+
+  const latest = await api(`/api/sites/${siteId}/latest`);
+  const run = latest.run;
+
+  if (!run) {
+    statusEl.textContent =
+      "Crawl queued or not finished yet. Waiting for results…";
+    renderFindings([]);
+    if (poll) {
+      stopPoll();
+      pollTimer = setTimeout(() => showLatest(siteId, { poll: true }), 2500);
+    }
+    return;
+  }
+
+  const finished = run.status === "completed" || run.finished_at;
+  statusEl.textContent = finished
+    ? `Run ${run.id} · ${run.status || "completed"} · ${run.finished_at || run.started_at || ""}`
+    : `Run ${run.id} · ${run.status || "running"}…`;
+
+  if (run.summary) {
+    summaryEl.hidden = false;
+    summaryEl.textContent = JSON.stringify(run.summary, null, 2);
+  } else {
+    summaryEl.hidden = true;
+  }
+
+  renderFindings(latest.findings || []);
+
+  if (!finished && poll) {
+    stopPoll();
+    pollTimer = setTimeout(() => showLatest(siteId, { poll: true }), 2500);
+  } else {
+    stopPoll();
+  }
 }
 
 async function refresh() {
   const me = await api("/api/me");
-  const isPro = me.user.plan === "pro";
+  const isPro = String(me.user.plan || "").toLowerCase() === "pro";
   document.getElementById("plan-line").textContent =
     `Signed in as ${me.user.email} · plan: ${me.user.plan}`;
 
@@ -141,36 +229,63 @@ async function refresh() {
 
   if (!isPro) {
     document.getElementById("sites").innerHTML = "";
-    document.getElementById("latest").textContent = "";
+    document.getElementById("crawl-panel").hidden = true;
+    stopPoll();
     return me;
   }
 
+  const sites = (me.sites || []).filter((s) => s.active === 1 || s.active === true);
+  const allSites = me.sites || [];
+  const active = sites[0] || allSites.find((s) => Number(s.active) === 1);
+  const hasActive = Boolean(active);
+
+  document.getElementById("site-form").hidden = hasActive;
+  document.getElementById("site-limit-note").hidden = !hasActive;
+
   const sitesEl = document.getElementById("sites");
-  sitesEl.innerHTML = (me.sites || [])
-    .map(
-      (s) =>
-        `<div class="mono">${s.id} · ${s.url} · active=${s.active}
-<button data-run="${s.id}">Run now</button>
-<button data-latest="${s.id}">Latest</button></div>`,
-    )
+  sitesEl.innerHTML = allSites
+    .map((s) => {
+      const activeFlag = Number(s.active) === 1;
+      return `<div class="site-card">
+        <div class="mono">${escapeHtml(s.url)} · ${activeFlag ? "active" : "inactive"}</div>
+        <div class="row" style="margin-top:0.75rem">
+          <button class="btn primary" data-run="${escapeHtml(s.id)}" ${activeFlag ? "" : "disabled"}>Run now</button>
+          <button class="btn ghost" data-latest="${escapeHtml(s.id)}">View logs</button>
+        </div>
+      </div>`;
+    })
     .join("");
 
   sitesEl.querySelectorAll("[data-run]").forEach((btn) => {
     btn.onclick = async () => {
-      await api(`/api/sites/${btn.dataset.run}/run`, { method: "POST" });
-      alert("Crawl queued");
+      const siteId = btn.dataset.run;
+      btn.disabled = true;
+      try {
+        await api(`/api/sites/${siteId}/run`, { method: "POST" });
+        document.getElementById("status").textContent = "Crawl queued…";
+        await showLatest(siteId, { poll: true });
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false;
+      }
     };
   });
   sitesEl.querySelectorAll("[data-latest]").forEach((btn) => {
-    btn.onclick = async () => {
-      const latest = await api(`/api/sites/${btn.dataset.latest}/latest`);
-      document.getElementById("latest").textContent = JSON.stringify(
-        latest,
-        null,
-        2,
-      );
-    };
+    btn.onclick = () => showLatest(btn.dataset.latest, { poll: true });
   });
+
+  document.getElementById("refresh-crawl").onclick = () => {
+    if (active) showLatest(active.id, { poll: true });
+  };
+
+  if (active) {
+    await showLatest(active.id, { poll: true });
+  } else {
+    document.getElementById("crawl-panel").hidden = true;
+    stopPoll();
+  }
+
   return me;
 }
 
@@ -182,6 +297,7 @@ async function main() {
     let bootstrapped = false;
 
     const renderSignedOut = () => {
+      stopPoll();
       status.textContent = "Sign in to manage Pro monitoring";
       document.getElementById("panel").hidden = true;
       document.getElementById("sign-in").hidden = false;
@@ -195,6 +311,9 @@ async function main() {
       document.getElementById("sign-out").hidden = false;
       try {
         await refresh();
+        if (new URLSearchParams(location.search).get("checkout") === "success") {
+          status.textContent = "Welcome to Pro — your 7-day trial is active.";
+        }
       } catch (err) {
         status.textContent = `Signed in, but API auth failed: ${err.message}${
           err.payload?.reason ? ` (${err.payload.reason})` : ""
@@ -218,6 +337,7 @@ async function main() {
         fallbackRedirectUrl: `${location.origin}/app.html`,
       });
     document.getElementById("sign-out").onclick = async () => {
+      stopPoll();
       await clerk.signOut({ redirectUrl: `${location.origin}/app.html` });
     };
 
@@ -228,7 +348,7 @@ async function main() {
 
     document.getElementById("upgrade").onclick = async () => {
       try {
-        status.textContent = "Starting checkout…";
+        status.textContent = "Starting 7-day trial checkout…";
         const { url } = await api("/api/billing/checkout", { method: "POST" });
         location.href = url;
       } catch (err) {
@@ -260,14 +380,16 @@ async function main() {
       e.preventDefault();
       try {
         const fd = new FormData(e.target);
-        await api("/api/sites", {
+        const created = await api("/api/sites", {
           method: "POST",
           body: JSON.stringify({ url: fd.get("url") }),
         });
+        status.textContent = "Site added — crawl queued…";
         await refresh();
+        if (created?.id) await showLatest(created.id, { poll: true });
       } catch (err) {
         if (err.status === 402) {
-          if (confirm("Pro required to monitor a site. Open checkout?")) {
+          if (confirm("Pro required to monitor a site. Start your 7-day trial?")) {
             document.getElementById("upgrade").click();
           }
           return;

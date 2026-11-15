@@ -44,14 +44,16 @@
           <h1>Monitoring</h1>
           <p id="plan-line"></p>
           <div class="row" id="billing-row">
-            <button class="btn primary" id="upgrade">Upgrade to Pro — $29/mo</button>
+            <button class="btn primary" id="upgrade">
+              Start 7-day free trial
+            </button>
             <button class="btn ghost" id="portal" hidden>Billing portal</button>
+            <button class="btn ghost" id="mint-key" hidden>Create MCP API key</button>
           </div>
           <p id="free-note" class="lede" hidden>
-            Add a production site and force crawls after you upgrade. The local MCP stays free.
+            Pro includes a 7-day free trial, then $29/mo for 1 monitored site. The local MCP stays free.
           </p>
           <div id="pro-tools" hidden>
-            <button class="btn ghost" id="mint-key">Create MCP API key</button>
             <pre id="key-out" class="mono" hidden></pre>
             <form id="site-form" class="site-form">
               <label>
@@ -60,8 +62,19 @@
               </label>
               <button class="btn primary" type="submit">Add site &amp; force crawl</button>
             </form>
+            <p id="site-limit-note" class="lede" hidden>
+              Pro includes 1 active site. Remove it before adding another.
+            </p>
             <div id="sites"></div>
-            <div id="latest" class="mono"></div>
+            <section id="crawl-panel" class="crawl-panel" hidden>
+              <div class="row">
+                <h2>Latest crawl</h2>
+                <button class="btn ghost" id="refresh-crawl" type="button">Refresh</button>
+              </div>
+              <p id="crawl-status" class="lede"></p>
+              <div id="crawl-summary" class="mono" hidden></div>
+              <div id="crawl-findings"></div>
+            </section>
           </div>
         </div>
       </main>
