@@ -1,5 +1,3 @@
-# Thin alias so `cd cloud && wrangler …` still works.
-# Canonical config lives at the monorepo root (Workers Builds cwd).
 name = "qualitykit-cloud"
 main = "src/index.ts"
 compatibility_date = "2025-11-15"
@@ -30,10 +28,13 @@ crons = ["0 6 * * *"]
 [assets]
 directory = "./public"
 binding = "ASSETS"
+# Serve exact paths (app.html stays /app.html). auto-trailing-slash was
+# 307-redirecting /app.html → /app and confusing some browsers.
 html_handling = "none"
 not_found_handling = "404-page"
 
 [vars]
 APP_URL = "https://app.qualitykit.dev"
+# Replace after creating Stripe Price + copying Clerk publishable key:
 STRIPE_PRICE_ID = "price_REPLACE_ME"
 CLERK_PUBLISHABLE_KEY = "pk_live_Y2xlcmsucXVhbGl0eWtpdC5kZXYk"
