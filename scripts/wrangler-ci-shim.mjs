@@ -20,7 +20,6 @@ const isBareDeploy =
 function realWranglerCli() {
   const candidates = [
     path.join(root, "node_modules", "wrangler", "bin", "wrangler.real.js"),
-    path.join(root, "cloud", "node_modules", "wrangler", "bin", "wrangler.real.js"),
   ];
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;

@@ -47,12 +47,14 @@ npm run build
 | Tool | Purpose |
 | --- | --- |
 | `qualitykit.audit` | Route inventory + technical/metadata/content/schema/links. **Defects vs opportunities**. Optional rendered HTML. |
+| `qualitykit.grow` | **Grow impressions:** why visibility is limited, top 10 changes, safe vs approval. Enriches with GSC when Pro API key is set. |
 | `qualitykit.ai_audit` | AI readiness scores (crawlability, extractability, entity clarity, citation readiness, structured understanding, topical coverage) |
 | `qualitykit.plan` | Content briefs, blog architecture plan, schema, internal links |
 | `qualitykit.fix` | Advise-only unified diffs / file specs for selected findings (`safeAutoOnly` supported) |
 | `qualitykit.verify` | Re-audit; report fixed / remaining / regressed (supports `proposedFiles`) |
 | `monitor.status` | Latest hosted Pro run when `QUALITYKIT_API_KEY` is set; otherwise `self_hosted` / `not_run` |
-| `visibility.report` | Stub (`not_connected`) until Search/AI visibility ships |
+| `visibility.report` | Search Console period metrics, ranked opportunities, and `changeOutcomes` via Cloud when API key is set; otherwise `not_connected` |
+| `visibility.mark_applied` | Snapshot GSC metrics for grow change ids after deploy so later `visibility.report` shows per-change deltas (Pro + API key) |
 
 Responses include additive `schemaVersion` + `coverage` fields. Never treat `not_run` as a pass.
 
@@ -65,12 +67,16 @@ Prompt: `audit-site`
 ## Example workflow
 
 1. `qualitykit.audit` (optionally `includeRendered` + `siteUrl`)
-2. `qualitykit.ai_audit`
-3. `qualitykit.plan`
-4. Present defects, then opportunities
+2. `qualitykit.grow` — why impressions are limited, top 10, safe vs approval
+3. Optionally `qualitykit.ai_audit` and `qualitykit.plan`
+4. Present defects and grow changes (no volumes or impression counts)
 5. `qualitykit.fix` with approved finding IDs (`safeAutoOnly: true` for low-risk)
 6. Apply diffs in the repo
 7. `qualitykit.verify`
+8. **Pro + GSC:** after deploy, `visibility.mark_applied` with `topChanges` ids (pass `items` with `path`/`query` when available)
+9. Later `visibility.report` for period metrics and `changeOutcomes` (Search Console often lags 1–3 days; deltas are correlational, not a ranking guarantee)
+
+**MCP API key** (`qk_…` from the dashboard) is for the local MCP to call QualityKit Cloud — not for Google OAuth. Connect Search Console in the dashboard with Google login; set `QUALITYKIT_API_KEY` + `QUALITYKIT_API_BASE=https://app.qualitykit.dev` in Cursor so `visibility.*` / grow enrichment work.
 
 ## Findings model
 
@@ -88,14 +94,20 @@ Heuristic 0–100 scores with evidence. They **do not** predict rankings or AI c
 
 | | Free forever ($0) | Pro ($29/mo) |
 | --- | --- | --- |
-| Local MCP audits, AI readiness, fixes, verify | Yes | Yes |
+| Local MCP audits, `qualitykit.grow`, AI readiness, fixes, verify | Yes | Yes |
 | Account / API key required | No | For hosted features |
 | Daily hosted crawls + history | — | 1 production site |
 | Email regression alerts | — | Yes |
 | `monitor.status` via cloud | Self-hosted stub | Connected |
-| GSC / AI citation credits | Later / self-run | Later phases |
+| Google Search Console connect + sync | — | Yes (1 site) |
+| `visibility.report` + grow GSC enrichment | Offline / `not_connected` | Connected when GSC linked |
+| `visibility.mark_applied` + per-change deltas | — | Snapshot applied recs; outcomes in report / dashboard |
 
-Cloud app: [`cloud/`](cloud/) (Cloudflare Workers + D1 + Queues + Cron, Clerk, Stripe). Optional self-hosted Pro infrastructure; setup is in [`cloud/README.md`](cloud/README.md). The local MCP runs on its own.
+**Free:** explain why impressions are limited from the codebase, rank the next 10 changes, mark safe auto-fixes, and verify after the coding agent applies approved diffs. No OpenAI key inside QualityKit.
+
+**Pro:** daily crawl, history, email alerts, plus Google Search Console OAuth for the monitored site. Re-ranks opportunities with real queries and shows last-28d vs prior-28d impressions/clicks. Mark recommendations applied (dashboard or `visibility.mark_applied`) to snapshot per-change baselines; later syncs power `changeOutcomes` deltas.
+
+Hosted Pro runs at [app.qualitykit.dev](https://app.qualitykit.dev). The cloud app (Workers, D1, Clerk, Stripe, managed GSC) is a separate private product. This repository is the free local MCP and shared `@qualitykit/engine` package. Point Cursor at Pro with `QUALITYKIT_API_KEY` and `QUALITYKIT_API_BASE=https://app.qualitykit.dev`.
 
 Local code fixes stay free. Model tokens come from your coding agent — QualityKit does not fund inference.
 

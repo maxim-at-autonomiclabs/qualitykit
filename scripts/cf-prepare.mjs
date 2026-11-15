@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
- * Workers Builds monorepo helper.
+ * Workers Builds helper for the public marketing site Worker.
  *
  * postinstall (when WORKERS_CI=1): install a wrangler shim in node_modules/.bin
  * so bare `npx wrangler deploy` can see WRANGLER_CI_OVERRIDE_NAME (set at deploy
  * time) and select the right Worker.
  *
  * When invoked with WRANGLER_CI_OVERRIDE_NAME already set: build that package and
- * write a root wrangler.toml with repo-root-relative paths.
+ * write a gitignored root wrangler.toml with repo-root-relative paths.
+ *
+ * qualitykit-cloud lives in the private maxim-at-autonomiclabs/qualitykit-cloud repo.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -37,7 +39,6 @@ function installWranglerShim() {
   // always .bin — patch the package entry and keep a copy of the real CLI.
   const pkgBins = [
     path.join(root, "node_modules", "wrangler", "bin", "wrangler.js"),
-    path.join(root, "cloud", "node_modules", "wrangler", "bin", "wrangler.js"),
   ];
 
   for (const pkgBin of pkgBins) {
@@ -108,63 +109,11 @@ enabled = false
   }
 
   if (name === "qualitykit-cloud") {
-    run("npm", ["run", "build:engine"]);
-    writeConfig(
-      name,
-      `name = "qualitykit-cloud"
-main = "cloud/src/index.ts"
-compatibility_date = "2025-11-15"
-workers_dev = true
-
-routes = [
-  { pattern = "app.qualitykit.dev", custom_domain = true }
-]
-
-[[d1_databases]]
-binding = "DB"
-database_name = "qualitykit"
-database_id = "fd391b59-d80e-42cb-977a-d72eebaf33ed"
-migrations_dir = "cloud/migrations"
-
-[[queues.producers]]
-binding = "CRAWL_QUEUE"
-queue = "qualitykit-crawl"
-
-[[queues.consumers]]
-queue = "qualitykit-crawl"
-max_batch_size = 5
-max_retries = 3
-
-[triggers]
-crons = ["0 6 * * *"]
-
-[assets]
-directory = "./cloud/public"
-binding = "ASSETS"
-html_handling = "none"
-not_found_handling = "404-page"
-
-[observability.logs]
-enabled = true
-head_sampling_rate = 1
-invocation_logs = true
-persist = true
-
-[observability.traces]
-enabled = false
-head_sampling_rate = 1
-persist = true
-
-[observability.issues]
-enabled = false
-
-[vars]
-APP_URL = "https://app.qualitykit.dev"
-STRIPE_PRICE_ID = "price_REPLACE_ME"
-CLERK_PUBLISHABLE_KEY = "pk_live_Y2xlcmsucXVhbGl0eWtpdC5kZXYk"
-`,
+    console.error(
+      `[cf-prepare] qualitykit-cloud is no longer in this repository.
+Deploy from the private repo: https://github.com/maxim-at-autonomiclabs/qualitykit-cloud`,
     );
-    return;
+    process.exit(1);
   }
 
   console.error(`[cf-prepare] unknown worker "${name}"`);

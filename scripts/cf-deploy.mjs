@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
- * Local / explicit monorepo deploy.
- * Usage: npm run cf:deploy -- qualitykit-cloud|qualitykit-web
+ * Local / explicit deploy for the public marketing Worker.
+ * Usage: npm run cf:deploy -- qualitykit-web
  * Workers Builds uses postinstall (cf-prepare) + `npx wrangler deploy` instead.
+ *
+ * qualitykit-cloud deploys from the private qualitykit-cloud repository.
  */
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -12,7 +14,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const worker =
   process.env.WRANGLER_CI_OVERRIDE_NAME ||
   process.argv[2] ||
-  "qualitykit-cloud";
+  "qualitykit-web";
 
 function run(command, args) {
   console.log(`\n> ${command} ${args.join(" ")}`);

@@ -5,8 +5,7 @@
   "type": "module",
   "private": false,
   "workspaces": [
-    "packages/*",
-    "cloud"
+    "packages/*"
   ],
   "bin": {
     "qualitykit": "./dist/index.js"
@@ -21,9 +20,8 @@
     "postinstall": "node scripts/cf-prepare.mjs",
     "build": "npm run build -w @qualitykit/engine && tsc",
     "build:engine": "npm run build -w @qualitykit/engine",
-    "build:cloud": "npm run build -w @qualitykit/cloud",
+    "publish:engine": "npm publish -w @qualitykit/engine --access public",
     "cf:deploy": "node scripts/cf-deploy.mjs",
-    "deploy:cloud": "npm run build:engine && npm run deploy -w @qualitykit/cloud",
     "deploy:web": "npm run deploy --prefix website",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",

@@ -16,10 +16,24 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepare": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
     "test": "echo \"engine tested via root suite\""
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxim-at-autonomiclabs/qualitykit.git",
+    "directory": "packages/engine"
+  },
+  "homepage": "https://qualitykit.dev",
   "license": "MIT",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "typescript": "^5.8.3"
   }
 }

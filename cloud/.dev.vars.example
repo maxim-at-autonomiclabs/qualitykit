@@ -1,7 +1,0 @@
-CLERK_SECRET_KEY=sk_test_xxx
-# Optional but recommended on Workers (Dashboard → API keys → Show JWT public key → PEM):
-# CLERK_JWT_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
-STRIPE_SECRET_KEY=sk_test_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-RESEND_API_KEY=re_xxx
-API_SIGNING_SECRET=generate_a_long_random_string
