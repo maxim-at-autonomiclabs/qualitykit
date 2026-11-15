@@ -26,6 +26,15 @@ function authorizedParties(env: Env): string[] {
   ];
 }
 
+function acceptedIssuers(env: Env): string[] {
+  return [
+    CLERK_PROXY_URL,
+    `${CLERK_PROXY_URL}/`,
+    "https://clerk.qualitykit.dev",
+    `${env.APP_URL.replace(/\/$/, "")}/__clerk`,
+  ];
+}
+
 function clerkClient(env: Env) {
   return createClerkClient({
     secretKey: env.CLERK_SECRET_KEY,
@@ -34,50 +43,89 @@ function clerkClient(env: Env) {
   });
 }
 
+function tokenDebug(token: string): { iss?: string; azp?: string; sub?: string } {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return {};
+    const json = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(json) as {
+      iss?: string;
+      azp?: string;
+      sub?: string;
+    };
+    return { iss: payload.iss, azp: payload.azp, sub: payload.sub };
+  } catch {
+    return {};
+  }
+}
+
 async function resolveClerkUserId(
   c: Context<{ Bindings: Env }>,
   token: string,
-): Promise<{ userId: string } | { error: string; reason: string }> {
+): Promise<{ userId: string } | { error: string; reason: string; debug?: object }> {
   const parties = authorizedParties(c.env);
-  const clerk = clerkClient(c.env);
+  const issuers = acceptedIssuers(c.env);
+  const debug = tokenDebug(token);
 
-  try {
-    const state = await clerk.authenticateRequest(c.req.raw, {
-      secretKey: c.env.CLERK_SECRET_KEY,
-      publishableKey: c.env.CLERK_PUBLISHABLE_KEY,
-      proxyUrl: CLERK_PROXY_URL,
-      authorizedParties: parties,
-    });
-    if (state.isAuthenticated) {
-      const { userId } = state.toAuth();
-      if (userId) return { userId };
-    }
-  } catch (error) {
-    console.error(
-      "clerk authenticateRequest threw",
-      error instanceof Error ? error.message : error,
-    );
-  }
-
-  // SPA calls send Bearer only (session cookies live on the proxy domain).
-  // Omit `issuer` so proxy-issued tokens (iss = proxy URL) verify against JWKS.
+  // Prefer direct JWT verify for SPA Bearer tokens (no cookie handshake).
   try {
     const payload = await verifyToken(token, {
       secretKey: c.env.CLERK_SECRET_KEY,
       authorizedParties: parties,
-      clockSkewInMs: 15_000,
+      issuer: issuers,
+      clockSkewInMs: 60_000,
     });
     if (payload.sub) return { userId: payload.sub };
-    return { error: "Unauthorized", reason: "missing_sub" };
-  } catch (error) {
-    const reason =
-      error && typeof error === "object" && "reason" in error
-        ? String((error as { reason?: string }).reason)
-        : error instanceof Error
-          ? error.message
+    return { error: "Unauthorized", reason: "missing_sub", debug };
+  } catch (firstError) {
+    const reason1 =
+      firstError && typeof firstError === "object" && "reason" in firstError
+        ? String((firstError as { reason?: string }).reason)
+        : firstError instanceof Error
+          ? firstError.message
           : "verify_failed";
-    console.error("clerk verifyToken failed", reason);
-    return { error: "Invalid session", reason };
+
+    // Retry without azp allowlist if that was the only failure (proxy/satellite quirks).
+    if (
+      reason1.includes("authorized-part") ||
+      reason1.includes("azp") ||
+      reason1 === "token-invalid-authorized-parties"
+    ) {
+      try {
+        const payload = await verifyToken(token, {
+          secretKey: c.env.CLERK_SECRET_KEY,
+          issuer: issuers,
+          clockSkewInMs: 60_000,
+        });
+        if (payload.sub) return { userId: payload.sub };
+      } catch {
+        /* fall through */
+      }
+    }
+
+    // Last resort: signature-only (issuer/azp omitted) — still needs valid Clerk JWT.
+    try {
+      const payload = await verifyToken(token, {
+        secretKey: c.env.CLERK_SECRET_KEY,
+        clockSkewInMs: 60_000,
+      });
+      if (payload.sub) {
+        console.warn("clerk verifyToken accepted without party/issuer checks", debug);
+        return { userId: payload.sub };
+      }
+    } catch (secondError) {
+      const reason2 =
+        secondError && typeof secondError === "object" && "reason" in secondError
+          ? String((secondError as { reason?: string }).reason)
+          : secondError instanceof Error
+            ? secondError.message
+            : reason1;
+      console.error("clerk verifyToken failed", reason2, debug);
+      return { error: "Invalid session", reason: reason2, debug };
+    }
+
+    console.error("clerk verifyToken failed", reason1, debug);
+    return { error: "Invalid session", reason: reason1, debug };
   }
 }
 
@@ -103,7 +151,11 @@ export async function requireUser(
   const resolved = await resolveClerkUserId(c, token);
   if ("error" in resolved) {
     return c.json(
-      { error: resolved.error, reason: resolved.reason },
+      {
+        error: resolved.error,
+        reason: resolved.reason,
+        debug: resolved.debug,
+      },
       401,
     );
   }

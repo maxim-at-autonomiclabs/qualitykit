@@ -78,9 +78,31 @@ async function loadClerk() {
   return clerk;
 }
 
+/** Dedupe concurrent getToken calls; never skipCache (that 429s Clerk). */
+let tokenInflight = null;
+async function getSessionToken() {
+  const session = window.__qkClerk?.session;
+  if (!session) return null;
+  if (tokenInflight) return tokenInflight;
+  tokenInflight = session
+    .getToken()
+    .catch((err) => {
+      const msg = String(err?.message || err);
+      if (msg.includes("429") || msg.includes("Too Many")) {
+        throw new Error(
+          "Clerk rate-limited token refresh. Wait ~30s, then refresh the page.",
+        );
+      }
+      throw err;
+    })
+    .finally(() => {
+      tokenInflight = null;
+    });
+  return tokenInflight;
+}
+
 async function api(path, opts = {}) {
-  const clerk = window.__qkClerk;
-  const token = await clerk.session?.getToken({ skipCache: true });
+  const token = await getSessionToken();
   const headers = {
     "Content-Type": "application/json",
     ...(opts.headers || {}),
@@ -107,10 +129,6 @@ function setProUi(isPro, hasBillingCustomer) {
   freeNote.hidden = isPro;
   upgrade.hidden = isPro;
   portal.hidden = !isPro && !hasBillingCustomer;
-  if (isPro) {
-    upgrade.textContent = "Manage plan";
-    upgrade.hidden = true;
-  }
 }
 
 async function refresh() {
@@ -160,6 +178,8 @@ async function main() {
   const status = document.getElementById("status");
   try {
     const clerk = await loadClerk();
+    let lastUserId = undefined;
+    let bootstrapped = false;
 
     const renderSignedOut = () => {
       status.textContent = "Sign in to manage Pro monitoring";
@@ -174,18 +194,22 @@ async function main() {
       document.getElementById("sign-in").hidden = true;
       document.getElementById("sign-out").hidden = false;
       try {
-        // Wait briefly for session token after handshake / redirect
-        for (let i = 0; i < 8 && !clerk.session; i++) {
-          await new Promise((r) => setTimeout(r, 150));
-        }
-        await clerk.session?.getToken({ skipCache: true });
         await refresh();
       } catch (err) {
         status.textContent = `Signed in, but API auth failed: ${err.message}${
           err.payload?.reason ? ` (${err.payload.reason})` : ""
-        }. Try sign out → sign in again.`;
+        }. Wait a moment if rate-limited, then refresh.`;
         console.error(err);
       }
+    };
+
+    const onAuthChange = async (user) => {
+      const id = user?.id ?? null;
+      if (bootstrapped && id === lastUserId) return;
+      lastUserId = id;
+      bootstrapped = true;
+      if (user) await renderSignedIn();
+      else renderSignedOut();
     };
 
     document.getElementById("sign-in").onclick = () =>
@@ -197,12 +221,9 @@ async function main() {
       await clerk.signOut({ redirectUrl: `${location.origin}/app.html` });
     };
 
-    if (clerk.user) await renderSignedIn();
-    else renderSignedOut();
-
+    await onAuthChange(clerk.user);
     clerk.addListener(({ user }) => {
-      if (user) renderSignedIn();
-      else renderSignedOut();
+      onAuthChange(user);
     });
 
     document.getElementById("upgrade").onclick = async () => {
