@@ -90,7 +90,12 @@ async function api(path, opts = {}) {
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(path, { ...opts, headers });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText);
+  if (!res.ok) {
+    const err = new Error(data.error || res.statusText);
+    err.status = res.status;
+    err.payload = data;
+    throw err;
+  }
   return data;
 }
 
@@ -147,30 +152,61 @@ async function main() {
     if (!clerk.user) return;
 
     document.getElementById("panel").hidden = false;
-    await refresh();
+    try {
+      await refresh();
+    } catch (err) {
+      status.textContent = `Signed in, but API auth failed: ${err.message}${
+        err.payload?.reason ? ` (${err.payload.reason})` : ""
+      }. Try sign out → sign in again.`;
+      console.error(err);
+    }
 
     document.getElementById("upgrade").onclick = async () => {
-      const { url } = await api("/api/billing/checkout", { method: "POST" });
-      location.href = url;
+      try {
+        const { url } = await api("/api/billing/checkout", { method: "POST" });
+        location.href = url;
+      } catch (err) {
+        alert(err.message);
+      }
     };
     document.getElementById("portal").onclick = async () => {
-      const { url } = await api("/api/billing/portal", { method: "POST" });
-      location.href = url;
+      try {
+        const { url } = await api("/api/billing/portal", { method: "POST" });
+        location.href = url;
+      } catch (err) {
+        alert(err.message);
+      }
     };
     document.getElementById("mint-key").onclick = async () => {
-      const data = await api("/api/keys", { method: "POST" });
-      const out = document.getElementById("key-out");
-      out.hidden = false;
-      out.textContent = data.apiKey;
+      try {
+        const data = await api("/api/keys", { method: "POST" });
+        const out = document.getElementById("key-out");
+        out.hidden = false;
+        out.textContent = data.apiKey;
+      } catch (err) {
+        alert(err.message);
+      }
     };
     document.getElementById("site-form").onsubmit = async (e) => {
       e.preventDefault();
-      const fd = new FormData(e.target);
-      await api("/api/sites", {
-        method: "POST",
-        body: JSON.stringify({ url: fd.get("url") }),
-      });
-      await refresh();
+      try {
+        const fd = new FormData(e.target);
+        await api("/api/sites", {
+          method: "POST",
+          body: JSON.stringify({ url: fd.get("url") }),
+        });
+        await refresh();
+      } catch (err) {
+        if (err.status === 402) {
+          if (confirm("Pro required to monitor a site. Open checkout?")) {
+            document.getElementById("upgrade").click();
+          }
+          return;
+        }
+        alert(
+          `${err.message}${err.payload?.reason ? ` (${err.payload.reason})` : ""}`,
+        );
+      }
     };
   } catch (err) {
     status.textContent = `Setup needed: ${err.message}`;

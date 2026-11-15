@@ -21,6 +21,19 @@ export default {
       return app.fetch(request, env, ctx);
     }
 
+    // Pretty paths → .html without Workers asset redirects (html_handling=none)
+    const pretty: Record<string, string> = {
+      "/": "/index.html",
+      "/app": "/app.html",
+      "/app/": "/app.html",
+      "/pricing": "/pricing.html",
+      "/pricing/": "/pricing.html",
+    };
+    const assetPath = pretty[url.pathname];
+    if (assetPath && env.ASSETS) {
+      return env.ASSETS.fetch(new Request(new URL(assetPath, url), request));
+    }
+
     // Serve dashboard / marketing assets from Workers static assets
     if (env.ASSETS) {
       return env.ASSETS.fetch(request);

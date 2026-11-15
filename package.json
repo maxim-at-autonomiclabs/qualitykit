@@ -21,6 +21,9 @@
     "build": "npm run build -w @qualitykit/engine && tsc",
     "build:engine": "npm run build -w @qualitykit/engine",
     "build:cloud": "npm run build -w @qualitykit/cloud",
+    "deploy": "wrangler deploy",
+    "deploy:cloud": "npm run deploy -w @qualitykit/cloud",
+    "deploy:web": "npm run deploy --prefix website",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "npm run build:engine && vitest run",
@@ -56,6 +59,7 @@
     "@types/node": "^22.15.29",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.1"
+    "vitest": "^3.2.1",
+    "wrangler": "^4.162.0"
   }
 }

@@ -27,7 +27,11 @@ npx wrangler secret put STRIPE_WEBHOOK_SECRET
 npx wrangler secret put RESEND_API_KEY
 npx wrangler secret put API_SIGNING_SECRET
 npx wrangler d1 migrations apply qualitykit --remote
+# From cloud/ (local) or monorepo root (Workers Builds default command):
 npx wrangler deploy
+
+# Cloudflare Workers Builds (Git): if deploy runs at repo root, keep the
+# root wrangler.toml — or set Root directory to `cloud` in the dashboard.
 ```
 
 5. Stripe webhook endpoint: `https://app.qualitykit.dev/api/stripe/webhook`  
