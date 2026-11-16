@@ -199,12 +199,22 @@ export async function visibilityReport(args: {
     const gsc = data.gsc as
       | {
           period?: {
-            current?: { impressions?: number; clicks?: number };
+            current?: {
+              impressions?: number;
+              clicks?: number;
+              position?: number;
+              ctr?: number;
+            };
             delta?: {
               impressions?: number;
               clicks?: number;
               impressionsPct?: number | null;
               clicksPct?: number | null;
+              position?: number | null;
+              positionDelta?: number | null;
+              ctr?: number | null;
+              ctrDelta?: number | null;
+              ctrPp?: number | null;
             };
           };
         }
@@ -215,6 +225,14 @@ export async function visibilityReport(args: {
           trend?: string;
           series?: Array<{ date: string; impressions: number; clicks: number }>;
           caveat?: string;
+        }
+      | undefined;
+    const siteProfile = data.siteProfile as
+      | {
+          version?: number;
+          status?: string;
+          lastVerifiedAt?: string | null;
+          staleFields?: unknown[];
         }
       | undefined;
     const series = growth?.series ?? [];
@@ -229,6 +247,18 @@ export async function visibilityReport(args: {
           }
         : null;
 
+    const impressions = gsc?.period?.current?.impressions ?? null;
+    const clicks = gsc?.period?.current?.clicks ?? null;
+    const position =
+      gsc?.period?.current?.position ??
+      (data.position as number | undefined) ??
+      null;
+    const ctr =
+      gsc?.period?.current?.ctr ??
+      (impressions != null && impressions > 0 && clicks != null
+        ? clicks / impressions
+        : null);
+
     return jsonResult({
       ok: true,
       tool: "visibility.report",
@@ -237,15 +267,43 @@ export async function visibilityReport(args: {
       growthSummary: {
         period: growth?.period ?? period,
         trend: growth?.trend ?? null,
-        impressions: gsc?.period?.current?.impressions ?? null,
-        clicks: gsc?.period?.current?.clicks ?? null,
+        impressions,
+        clicks,
+        position,
+        ctr,
         impressionsDelta: gsc?.period?.delta?.impressions ?? null,
         clicksDelta: gsc?.period?.delta?.clicks ?? null,
         impressionsPct: gsc?.period?.delta?.impressionsPct ?? null,
         clicksPct: gsc?.period?.delta?.clicksPct ?? null,
+        positionDelta:
+          gsc?.period?.delta?.positionDelta ??
+          gsc?.period?.delta?.position ??
+          null,
+        ctrDelta: gsc?.period?.delta?.ctrDelta ?? gsc?.period?.delta?.ctr ?? null,
+        ctrPp: gsc?.period?.delta?.ctrPp ?? null,
         seriesSummary,
         caveat: growth?.caveat,
       },
+      profileFreshness: siteProfile
+        ? {
+            version: siteProfile.version ?? null,
+            status: siteProfile.status ?? null,
+            lastVerifiedAt: siteProfile.lastVerifiedAt ?? null,
+            staleFieldCount: Array.isArray(siteProfile.staleFields)
+              ? siteProfile.staleFields.length
+              : null,
+            summary:
+              siteProfile.version != null
+                ? `Site Profile v${siteProfile.version} · ${
+                    siteProfile.status === "fresh" ? "Fresh" : "Stale"
+                  }${
+                    siteProfile.lastVerifiedAt
+                      ? ` · last verified ${siteProfile.lastVerifiedAt}`
+                      : ""
+                  }`
+                : null,
+          }
+        : null,
       note: args.note,
     });
   } catch (error) {

@@ -47,13 +47,16 @@ npm run build
 | Tool | Purpose |
 | --- | --- |
 | `qualitykit.audit` | Route inventory + technical/metadata/content/schema/links. **Defects vs opportunities**. Optional rendered HTML. |
-| `qualitykit.grow` | **Grow impressions:** why visibility is limited, top 10 changes, safe vs approval. Enriches with GSC when Pro API key is set. |
+| `qualitykit.grow` | **Brand-aligned growth:** Site Profile + GSC queries → scored opportunities, deprioritised demand, top 10 changes, safe vs approval. |
+| `qualitykit.get_site_profile` | Living Site Profile (brand, ICP, products, voice, pages) with freshness; ephemeral draft when Cloud is offline. |
+| `qualitykit.refresh_site_profile` | Stale-field brief + evidence for the coding agent (no model call inside QualityKit). |
+| `qualitykit.update_site_profile` | Patch profile; brand/ICP/products stay pending until user approval. |
 | `qualitykit.ai_audit` | AI readiness scores (crawlability, extractability, entity clarity, citation readiness, structured understanding, topical coverage) |
 | `qualitykit.plan` | Content briefs, blog architecture plan, schema, internal links |
-| `qualitykit.fix` | Advise-only unified diffs / file specs for selected findings (`safeAutoOnly` supported) |
+| `qualitykit.fix` | Advise-only unified diffs / file specs for selected findings (`safeAutoOnly` supported); blocks irrelevant GSC ids |
 | `qualitykit.verify` | Re-audit; report fixed / remaining / regressed (supports `proposedFiles`) |
 | `monitor.status` | Latest hosted Pro run when `QUALITYKIT_API_KEY` is set; otherwise `self_hosted` / `not_run` |
-| `visibility.report` | Search Console period metrics, ranked opportunities, and `changeOutcomes` via Cloud when API key is set; otherwise `not_connected` |
+| `visibility.report` | Search Console period metrics (incl. position/CTR), profile freshness, ranked opportunities, and `changeOutcomes` via Cloud when API key is set; otherwise `not_connected` |
 | `visibility.mark_applied` | Snapshot GSC metrics for grow change ids after deploy so later `visibility.report` shows per-change deltas (Pro + API key) |
 
 Responses include additive `schemaVersion` + `coverage` fields. Never treat `not_run` as a pass.

@@ -134,17 +134,39 @@ describe("qualitykit.fix opportunity handoff", () => {
     );
   });
 
-  it("emits query buildContract for gsc-query ids", async () => {
+  it("emits query buildContract for on-brand gsc-query ids when user continues", async () => {
     const { root } = load("bare-app");
     const result = await qualitykitFix({
       projectRoot: root,
       siteUrl: "https://example.com",
-      opportunityIds: ["gsc-query-seo-mcp"],
+      // Fits Acme Analytics draft profile; continueDespiteStaleProfile allows create
+      // while Site Profile is still an ephemeral unstored draft.
+      opportunityIds: ["gsc-query-product-analytics"],
+      continueDespiteStaleProfile: true,
     });
     const payload = JSON.parse(result.content[0].text);
     expect(payload.buildContracts).toHaveLength(1);
     expect(payload.buildContracts[0].kind).toBe("query");
     expect(payload.diffs).toEqual([]);
+  });
+
+  it("skips irrelevant gsc-query ids without a build contract", async () => {
+    const { root } = load("bare-app");
+    const result = await qualitykitFix({
+      projectRoot: root,
+      siteUrl: "https://example.com",
+      opportunityIds: ["gsc-query-free-excel-templates"],
+      continueDespiteStaleProfile: true,
+    });
+    const payload = JSON.parse(result.content[0].text);
+    expect(payload.buildContracts).toEqual([]);
+    expect(
+      payload.skipped.some(
+        (s: { id: string; reason: string }) =>
+          s.id === "gsc-query-free-excel-templates" &&
+          /irrelevant|Brand-fit/i.test(s.reason),
+      ),
+    ).toBe(true);
   });
 
   it("does not dump unrelated diffs when explicit findingIds miss", async () => {

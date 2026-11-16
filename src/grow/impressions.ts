@@ -14,6 +14,15 @@ import {
   slugifyPhrase,
   type ProductSignals,
 } from "./product-signals.js";
+import {
+  checkSiteProfileFreshness,
+  classifyGscQuery,
+  computeSiteHash,
+  draftSiteProfileFromRepo,
+  type FreshnessReport,
+  type ScoredQueryOpportunity,
+  type SiteProfile,
+} from "./site-profile.js";
 
 export type ImpressionDriverId =
   | "indexability"
@@ -87,6 +96,17 @@ export interface GrowReport {
   needsApproval: GrowChange[];
   indexabilityBlocked: boolean;
   notes: string[];
+  profile?: {
+    version: number;
+    status: "fresh" | "stale";
+    stored: boolean;
+    lastVerifiedAt: string | null;
+    staleFields: FreshnessReport["staleFields"];
+  };
+  queries?: ScoredQueryOpportunity[];
+  opportunities?: ScoredQueryOpportunity[];
+  deprioritised?: ScoredQueryOpportunity[];
+  withholdNewPages?: boolean;
 }
 
 const DRIVER_TITLES: Record<ImpressionDriverId, string> = {
@@ -133,14 +153,46 @@ export function buildGrowReport(
   site: SiteModel,
   findings: Finding[],
   gscOpportunities: GscOpportunityOverlay[] = [],
+  profileInput?: SiteProfile | null,
+  opts?: { continueDespiteStaleProfile?: boolean },
 ): GrowReport {
   const indexabilityBlocked = findings.some((f) => f.id === "robots-blocks-all");
   const why = diagnoseDrivers(site, findings, indexabilityBlocked);
   const allChanges = listGrowChanges(site, findings);
   let topChanges = allChanges.slice(0, MAX_CHANGES);
 
+  const siteHash = computeSiteHash(site);
+  const profile = profileInput ?? draftSiteProfileFromRepo(site);
+  const knownQueries = gscOpportunities
+    .map((o) => o.query)
+    .filter((q): q is string => Boolean(q));
+  const freshness = checkSiteProfileFreshness(profile, {
+    siteHash,
+    knownQueries,
+  });
+  const materialStale = freshness.staleFields.some((f) =>
+    ["brandIdentity", "icp", "products"].includes(f.field),
+  );
+  const withholdNewPages = opts?.continueDespiteStaleProfile
+    ? false
+    : !profile.stored || materialStale;
+
+  let queries: ScoredQueryOpportunity[] = [];
+  let opportunities: ScoredQueryOpportunity[] = [];
+  let deprioritised: ScoredQueryOpportunity[] = [];
+
   if (gscOpportunities.length > 0) {
-    topChanges = applyGscOverlay(topChanges, gscOpportunities);
+    const scored = applyBrandAlignedGsc(
+      topChanges,
+      gscOpportunities,
+      profile,
+      site,
+      withholdNewPages,
+    );
+    topChanges = scored.topChanges;
+    queries = scored.queries;
+    opportunities = scored.opportunities;
+    deprioritised = scored.deprioritised;
   }
 
   const safeToImplement = topChanges.filter((c) => c.fixSafety === "auto");
@@ -155,10 +207,27 @@ export function buildGrowReport(
     safeToImplement,
     needsApproval,
     indexabilityBlocked,
+    profile: {
+      version: profile.version,
+      status: freshness.status,
+      stored: profile.stored,
+      lastVerifiedAt: profile.lastVerifiedAt,
+      staleFields: freshness.staleFields,
+    },
+    queries,
+    opportunities,
+    deprioritised,
+    withholdNewPages,
     notes: [
+      profile.stored
+        ? `Scoring against Site Profile v${profile.version} (${freshness.status}).`
+        : "No stored Site Profile — using ephemeral repo draft (low confidence). Confirm via qualitykit.update_site_profile.",
       gscBacked
-        ? "Some opportunities are backed by Google Search Console evidence (gsc_backed)."
+        ? "Some opportunities are backed by Google Search Console evidence (gsc_backed) and brand-fit scoring."
         : "Demand for new pages is unverified until Search Console or keyword data is connected.",
+      withholdNewPages
+        ? "New-page contracts withheld until brand/ICP/products are fresh and approved (or user explicitly continues)."
+        : "Brand profile allows new-page recommendations when demand fits.",
       "QualityKit does not guarantee impression growth. Measure non-branded impressions, indexed pages, average position, clicks, and conversions after publish.",
       "Authority (backlinks and mentions) is not measured in the local MCP.",
       "No OpenAI key is used. The coding agent drafts approved copy.",
@@ -169,11 +238,172 @@ export function buildGrowReport(
   };
 }
 
-/** Boost matching grow changes with GSC evidence and prepend unmatched GSC opportunities. */
+/**
+ * Brand-aligned GSC overlay: score queries, deprioritise irrelevant demand,
+ * boost matching pages, and emit create/improve/overlap changes only for fit.
+ */
+export function applyBrandAlignedGsc(
+  changes: GrowChange[],
+  opportunities: GscOpportunityOverlay[],
+  profile: SiteProfile,
+  site: SiteModel,
+  withholdNewPages: boolean,
+): {
+  topChanges: GrowChange[];
+  queries: ScoredQueryOpportunity[];
+  opportunities: ScoredQueryOpportunity[];
+  deprioritised: ScoredQueryOpportunity[];
+} {
+  const queries = opportunities.map((opp) =>
+    classifyGscQuery(opp, profile, site),
+  );
+  const deprioritised = queries.filter((q) => q.action === "deprioritise");
+  const actionable = queries.filter((q) => q.action !== "deprioritise");
+
+  const byId = new Map(changes.map((c) => [c.id, { ...c }]));
+  const byPath = new Map(
+    changes
+      .filter((c) => c.page?.path)
+      .map((c) => [normalizePath(c.page!.path), { ...c }]),
+  );
+  const matched = new Set<string>();
+  const gscChanges: GrowChange[] = [];
+  const keptOpportunities: ScoredQueryOpportunity[] = [];
+
+  for (const scored of actionable) {
+    if (scored.action === "create" && withholdNewPages) {
+      continue;
+    }
+
+    keptOpportunities.push(scored);
+    const path = scored.pagePath ? normalizePath(scored.pagePath) : null;
+    const pathMatch =
+      (path ? byPath.get(path) : undefined) ||
+      (scored.brandFit.overlappingPaths[0]
+        ? byPath.get(normalizePath(scored.brandFit.overlappingPaths[0]))
+        : undefined);
+
+    if (pathMatch && scored.action === "improve") {
+      matched.add(pathMatch.id);
+      const evidence = [
+        ...pathMatch.evidence.filter((e) => !e.startsWith("demand=")),
+        "demand=gsc_backed",
+        `brandFit=${scored.brandFit.score}`,
+        `brandBand=${scored.brandFit.band}`,
+        `query=${scored.query}`,
+      ];
+      if (scored.impressions != null) {
+        evidence.push(`gscImpressions=${scored.impressions}`);
+      }
+      if (scored.position != null) {
+        evidence.push(`gscPosition=${scored.position}`);
+      }
+      const updated: GrowChange = {
+        ...pathMatch,
+        title: scored.title,
+        confidence: "high",
+        expectedImpact: "high",
+        suggestedFix: scored.suggestedFix,
+        evidence: [...new Set(evidence)],
+        page: pathMatch.page
+          ? { ...pathMatch.page, demand: "gsc_backed" }
+          : pathMatch.page,
+      };
+      byId.set(updated.id, updated);
+      continue;
+    }
+
+    gscChanges.push(scoredQueryToGrowChange(scored));
+  }
+
+  const boosted = [...matched].map((id) => byId.get(id)!);
+  const rest = [...byId.values()].filter((c) => !matched.has(c.id));
+  // Drop unverified page ideas that conflict with deprioritised query topics
+  const depriorTerms = new Set(
+    deprioritised.flatMap((d) =>
+      d.query
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((t) => t.length >= 4),
+    ),
+  );
+  const filteredRest = rest.filter((c) => {
+    if (c.kind !== "page" || !c.page) return true;
+    const hay = `${c.title} ${c.page.path}`.toLowerCase();
+    return ![...depriorTerms].some((t) => hay.includes(t));
+  });
+
+  return {
+    topChanges: rankChanges([...boosted, ...gscChanges, ...filteredRest]).slice(
+      0,
+      MAX_CHANGES,
+    ),
+    queries,
+    opportunities: keptOpportunities.slice(0, MAX_CHANGES),
+    deprioritised,
+  };
+}
+
+function scoredQueryToGrowChange(scored: ScoredQueryOpportunity): GrowChange {
+  const intentPath =
+    scored.action === "create"
+      ? `/guides/${scored.query
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "")
+          .slice(0, 48)}`
+      : scored.pagePath
+        ? normalizePath(scored.pagePath)
+        : scored.brandFit.overlappingPaths[0];
+
+  return {
+    id: scored.id,
+    title: scored.title,
+    kind: "page",
+    driver:
+      scored.action === "fix_overlap" ? "coverage" : scored.action === "improve"
+        ? "content"
+        : "coverage",
+    expectedImpact: scored.brandFit.band === "high" ? "high" : "medium",
+    confidence: "high",
+    effort: scored.action === "create" ? "high" : "medium",
+    fixSafety: "approval",
+    evidence: [
+      "demand=gsc_backed",
+      `brandFit=${scored.brandFit.score}`,
+      `brandBand=${scored.brandFit.band}`,
+      `action=${scored.action}`,
+      `query=${scored.query}`,
+      scored.impressions != null ? `gscImpressions=${scored.impressions}` : "",
+      scored.position != null ? `gscPosition=${scored.position}` : "",
+      ...scored.risk.map((r) => `risk=${r}`),
+    ].filter(Boolean),
+    suggestedFix: scored.suggestedFix,
+    verification:
+      "Re-check impressions, CTR, and average position in Search Console after publish.",
+    page: intentPath
+      ? {
+          path: intentPath,
+          intent: scored.action === "create" ? "guide" : "guide",
+          demand: "gsc_backed",
+          whyNotDuplicate: scored.brandFit.reason,
+        }
+      : undefined,
+  };
+}
+
+/** @deprecated Prefer applyBrandAlignedGsc — kept for callers that only need path boost. */
 export function applyGscOverlay(
   changes: GrowChange[],
   opportunities: GscOpportunityOverlay[],
+  profile?: SiteProfile | null,
+  site?: SiteModel,
 ): GrowChange[] {
+  if (profile && site) {
+    return applyBrandAlignedGsc(changes, opportunities, profile, site, false)
+      .topChanges;
+  }
+  // Legacy: treat all GSC rows as high impact (no brand filter)
   const byId = new Map(changes.map((c) => [c.id, { ...c }]));
   const byPath = new Map(
     changes

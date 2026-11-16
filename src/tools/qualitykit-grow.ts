@@ -8,6 +8,7 @@ import { withCoverageEnvelope } from "./envelope.js";
 import { errorResult, jsonResult, loadSite } from "./helpers.js";
 import { fetchVisibilityOverlay } from "./monitor.js";
 import { syncGrowToBacklog } from "./opportunities.js";
+import { resolveSiteProfile } from "./site-profile.js";
 
 export const qualitykitGrowInputSchema = {
   projectRoot: z
@@ -25,6 +26,12 @@ export const qualitykitGrowInputSchema = {
     .string()
     .optional()
     .describe("Optional Pro API key (or QUALITYKIT_API_KEY) for GSC enrichment"),
+  continueDespiteStaleProfile: z
+    .boolean()
+    .optional()
+    .describe(
+      "When true, allow new-page recommendations even if brand/ICP/products are stale (user explicitly continues).",
+    ),
 };
 
 export async function qualitykitGrow(args: {
@@ -32,10 +39,18 @@ export async function qualitykitGrow(args: {
   siteUrl?: string;
   apiBaseUrl?: string;
   apiKey?: string;
+  continueDespiteStaleProfile?: boolean;
 }) {
   try {
     const site = loadSite(args.projectRoot, args.siteUrl);
     const audit = runAuditEngine(site);
+
+    const { profile, freshness } = await resolveSiteProfile({
+      projectRoot: args.projectRoot,
+      siteUrl: args.siteUrl,
+      apiBaseUrl: args.apiBaseUrl,
+      apiKey: args.apiKey,
+    });
 
     const overlay = await fetchVisibilityOverlay({
       apiBaseUrl: args.apiBaseUrl,
@@ -52,7 +67,14 @@ export async function qualitykitGrow(args: {
         | "not_applicable"
         | undefined) ?? "not_connected";
 
-    const grow = buildGrowReport(site, audit.findings, gscOps);
+    const scoringProfile = {
+      ...profile,
+      status: freshness.status,
+    };
+
+    const grow = buildGrowReport(site, audit.findings, gscOps, scoringProfile, {
+      continueDespiteStaleProfile: Boolean(args.continueDespiteStaleProfile),
+    });
 
     // Fire-and-forget: keep Pro dashboard backlog warm when Cloud creds exist
     void syncGrowToBacklog({
@@ -81,6 +103,11 @@ export async function qualitykitGrow(args: {
           topChanges: grow.topChanges,
           safeToImplement: grow.safeToImplement,
           needsApproval: grow.needsApproval,
+          profile: grow.profile,
+          queries: grow.queries ?? [],
+          opportunities: grow.opportunities ?? [],
+          deprioritised: grow.deprioritised ?? [],
+          withholdNewPages: grow.withholdNewPages ?? false,
           summary: {
             driversLimited: grow.why.filter(
               (d) => d.status === "blocking" || d.status === "limited",
@@ -93,6 +120,9 @@ export async function qualitykitGrow(args: {
                 c.page?.demand === "gsc_backed" ||
                 c.evidence.includes("demand=gsc_backed"),
             ).length,
+            deprioritisedCount: (grow.deprioritised ?? []).length,
+            profileVersion: grow.profile?.version ?? 0,
+            profileStatus: grow.profile?.status ?? "stale",
           },
           notes: [
             ...grow.notes,
@@ -105,7 +135,8 @@ export async function qualitykitGrow(args: {
           caveats: [
             "No keyword volumes from third-party datasets.",
             "Impression growth is not guaranteed.",
-            "Local code fixes stay free; GSC enrichment is a Pro Cloud feature.",
+            "Local code fixes stay free; GSC enrichment and stored Site Profile are Pro Cloud features.",
+            "Optimise for relevant demand, not maximum keywords.",
           ],
         },
         {

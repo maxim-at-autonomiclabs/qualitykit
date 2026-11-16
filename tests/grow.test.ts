@@ -130,6 +130,12 @@ describe("qualitykit.grow impressions mode", () => {
     );
     expect(Array.isArray(payload.topChanges)).toBe(true);
     expect((payload.topChanges as unknown[]).length).toBeLessThanOrEqual(10);
+    expect(Array.isArray(payload.opportunities)).toBe(true);
+    expect(Array.isArray(payload.deprioritised)).toBe(true);
+    expect(payload.profile).toMatchObject({
+      stored: false,
+      status: expect.stringMatching(/fresh|stale/),
+    });
     expect(JSON.stringify(payload)).not.toMatch(/"impressions"\s*:\s*\d+/);
   });
 });

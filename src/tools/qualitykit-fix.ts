@@ -7,11 +7,15 @@ import {
   toBuildContract,
   type BuildContract,
 } from "../grow/build-contract.js";
-import { listGrowChanges } from "../grow/impressions.js";
+import { buildGrowReport, listGrowChanges } from "../grow/impressions.js";
+import { classifyGscQuery } from "../grow/site-profile.js";
 import { fileSpecToDiff } from "../fix/diff.js";
 import type { FileSpec, Recommendation } from "../model/site.js";
 import { withCoverageEnvelope } from "./envelope.js";
 import { errorResult, jsonResult, loadSite } from "./helpers.js";
+import { resolveSiteProfile } from "./site-profile.js";
+import { fetchVisibilityOverlay } from "./monitor.js";
+import type { GscOpportunityOverlay } from "../grow/impressions.js";
 
 export const qualitykitFixInputSchema = {
   projectRoot: z
@@ -32,6 +36,14 @@ export const qualitykitFixInputSchema = {
     .boolean()
     .optional()
     .describe("When true, only emit technical fixes marked fixSafety=auto (never page contracts)"),
+  apiBaseUrl: z.string().url().optional(),
+  apiKey: z.string().optional(),
+  continueDespiteStaleProfile: z
+    .boolean()
+    .optional()
+    .describe(
+      "Allow new-page contracts when Site Profile brand/ICP/products are stale (user explicitly continues).",
+    ),
 };
 
 const FINDING_TO_REC: Record<string, string[]> = {
@@ -56,12 +68,42 @@ export async function qualitykitFix(args: {
   findingIds?: string[];
   opportunityIds?: string[];
   safeAutoOnly?: boolean;
+  apiBaseUrl?: string;
+  apiKey?: string;
+  continueDespiteStaleProfile?: boolean;
 }) {
   try {
     const site = loadSite(args.projectRoot, args.siteUrl);
     const audit = runAuditEngine(site);
+    const { profile } = await resolveSiteProfile({
+      projectRoot: args.projectRoot,
+      siteUrl: args.siteUrl,
+      apiBaseUrl: args.apiBaseUrl,
+      apiKey: args.apiKey,
+    });
+    const overlay = await fetchVisibilityOverlay({
+      apiBaseUrl: args.apiBaseUrl,
+      apiKey: args.apiKey,
+    });
+    const gscOps = (overlay?.rankedOpportunities ??
+      []) as unknown as GscOpportunityOverlay[];
+    const growReport = buildGrowReport(
+      site,
+      audit.findings,
+      gscOps,
+      profile,
+      {
+        continueDespiteStaleProfile: Boolean(args.continueDespiteStaleProfile),
+      },
+    );
+    const deprioritisedIds = new Set(
+      (growReport.deprioritised ?? []).map((d) => d.id),
+    );
     const growById = new Map(
-      listGrowChanges(site, audit.findings).map((c) => [c.id, c]),
+      [
+        ...listGrowChanges(site, audit.findings),
+        ...growReport.topChanges,
+      ].map((c) => [c.id, c]),
     );
 
     const requested = [
@@ -188,16 +230,90 @@ export async function qualitykitFix(args: {
       };
 
       for (const id of pageQueryIds) {
+        if (deprioritisedIds.has(id)) {
+          skipped.push({
+            id,
+            reason:
+              "Brand-fit irrelevant — deprioritised. Will not generate a build contract (optimise for relevant demand).",
+          });
+          continue;
+        }
+
+        const depriorQuery = (growReport.deprioritised ?? []).find(
+          (d) => d.id === id || `gsc-query-${id}` === d.id,
+        );
+        if (depriorQuery) {
+          skipped.push({
+            id,
+            reason: `Brand-fit irrelevant (${depriorQuery.brandFit.score}): ${depriorQuery.brandFit.reason}`,
+          });
+          continue;
+        }
+
         const change = growById.get(id);
+        let scored = (growReport.opportunities ?? []).find((o) => o.id === id);
+
+        // Even without a live GSC overlay, score gsc-query-* ids against the profile
+        if (!scored && id.startsWith("gsc-query-")) {
+          const inferred = id
+            .replace(/^gsc-query-/, "")
+            .replace(/-/g, " ")
+            .trim();
+          if (inferred) {
+            scored = classifyGscQuery(
+              { id, query: inferred },
+              profile,
+              site,
+            );
+          }
+        }
+
+        if (scored?.action === "deprioritise") {
+          skipped.push({
+            id,
+            reason: `Brand-fit irrelevant (${scored.brandFit.score}): ${scored.brandFit.reason}`,
+          });
+          continue;
+        }
+
+        if (
+          scored?.action === "create" &&
+          growReport.withholdNewPages &&
+          !args.continueDespiteStaleProfile
+        ) {
+          skipped.push({
+            id,
+            reason:
+              "Site Profile brand/ICP/products are stale or unstored — refresh and approve before creating pages, or pass continueDespiteStaleProfile=true.",
+          });
+          continue;
+        }
+
         if (change?.kind === "page" && change.page?.path) {
-          if (routePathPresent(site.routes, change.page.path)) {
+          if (
+            scored?.action !== "improve" &&
+            scored?.action !== "fix_overlap" &&
+            routePathPresent(site.routes, change.page.path)
+          ) {
             skipped.push({
               id,
               reason: `Path ${change.page.path} already present — call qualitykit.verify then visibility.mark_applied.`,
             });
             continue;
           }
-          buildContracts.push(decorate(growChangeToContract(change)));
+          const contract = decorate(growChangeToContract(change));
+          if (profile.fields.brandVoice?.value) {
+            const voice = profile.fields.brandVoice.value as {
+              standards?: string[];
+              tone?: string;
+            };
+            contract.constraints = [
+              ...contract.constraints,
+              voice.tone ? `Brand voice: ${voice.tone}` : "",
+              ...(voice.standards ?? []),
+            ].filter(Boolean);
+          }
+          buildContracts.push(contract);
           continue;
         }
 
@@ -221,9 +337,10 @@ export async function qualitykitFix(args: {
             toBuildContract({
               id,
               kind: id.startsWith("gsc-query-") ? "query" : "page",
-              title: change?.title,
-              suggestedFix: change?.suggestedFix,
-              path: change?.page?.path,
+              title: change?.title ?? scored?.title,
+              suggestedFix: change?.suggestedFix ?? scored?.suggestedFix,
+              path: change?.page?.path ?? scored?.pagePath,
+              query: scored?.query,
             }),
           ),
         );

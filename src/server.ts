@@ -53,6 +53,14 @@ import {
   opportunitiesUpdate,
   opportunitiesUpdateInputSchema,
 } from "./tools/opportunities.js";
+import {
+  getSiteProfileInputSchema,
+  qualitykitGetSiteProfile,
+  qualitykitRefreshSiteProfile,
+  qualitykitUpdateSiteProfile,
+  refreshSiteProfileInputSchema,
+  updateSiteProfileInputSchema,
+} from "./tools/site-profile.js";
 import { schemaPlan, schemaPlanInputSchema } from "./tools/schema.js";
 import { seoValidate, validateInputSchema } from "./tools/validate.js";
 
@@ -104,10 +112,43 @@ export function createServer(): McpServer {
     {
       title: "QualityKit grow impressions",
       description:
-        "Flagship impressions mode: why visibility is limited, top 10 changes, and which are safe to auto-fix. Offline and advise-only — no keyword volumes or Search Console data (searchData stays not_connected).",
+        "Brand-aligned growth: score Search Console queries against the Site Profile, return top opportunities and deprioritised demand, with safe vs approval fixes. Uses Cloud GSC + profile when API key is set.",
       inputSchema: qualitykitGrowInputSchema,
     },
     qualitykitGrow,
+  );
+
+  server.registerTool(
+    "qualitykit.get_site_profile",
+    {
+      title: "Get Site Profile",
+      description:
+        "Return the approved Site Profile (brand, ICP, products, voice, pages, keyword relevance), confidence, and freshness. Ephemeral repo draft when Cloud is not connected.",
+      inputSchema: getSiteProfileInputSchema,
+    },
+    qualitykitGetSiteProfile,
+  );
+
+  server.registerTool(
+    "qualitykit.refresh_site_profile",
+    {
+      title: "Refresh Site Profile (brief)",
+      description:
+        "Return stale fields, reasons, and repo/GSC evidence for the coding agent to reassess. Does not call a model inside QualityKit.",
+      inputSchema: refreshSiteProfileInputSchema,
+    },
+    qualitykitRefreshSiteProfile,
+  );
+
+  server.registerTool(
+    "qualitykit.update_site_profile",
+    {
+      title: "Update Site Profile",
+      description:
+        "Apply a partial Site Profile patch. Brand identity, ICP, and products stay pendingApproval until approveMaterial or approvePending. Persists to Cloud when API key is set.",
+      inputSchema: updateSiteProfileInputSchema,
+    },
+    qualitykitUpdateSiteProfile,
   );
 
   server.registerTool(
@@ -334,7 +375,7 @@ export function createServer(): McpServer {
             type: "text" as const,
             text: [
               "You are using QualityKit, a read-only SEO + AEO MCP.",
-              "It never writes files. You apply approved diffs and open the PR.",
+              "It never writes files. You apply approved diffs in the working tree after the user confirms.",
               "",
               `Project root: ${projectRoot}`,
               siteUrl
@@ -342,22 +383,24 @@ export function createServer(): McpServer {
                 : "Site URL: (optional; only fetch when includeRendered=true)",
               "",
               "Workflow:",
-              "1. Call qualitykit.audit (optionally includeRendered with siteUrl)",
-              "2. Call qualitykit.grow — why impressions are limited, top 10 changes, safe vs approval",
-              "3. Optionally call qualitykit.ai_audit and qualitykit.plan for briefs/schema/links",
-              "4. Present defects and grow.topChanges — use impact, confidence, effort, fixSafety (no volumes or impression counts)",
-              "5. Call qualitykit.fix: finding IDs → diffs (safeAutoOnly for low-risk); page-* / gsc ids → buildContracts (you implement in-repo)",
-              "6. Apply technical diffs and implement buildContracts yourself after user approval — match existing project patterns",
-              "7. Call qualitykit.verify with findingIds and/or opportunityIds — readyToShip; with Pro key this can mark_applied",
-              "8. After grow (Pro): opportunities.sync (or rely on grow auto-sync) so the dashboard backlog shows found N",
-              "9. If verify did not ship: visibility.mark_applied with readyToShip ids (include path/query) — ships backlog rows",
-              "10. Later: visibility.report / opportunities.list for period metrics and backlog status (GSC lags ~1–3 days; deltas are correlational)",
+              "1. Call qualitykit.get_site_profile (or refresh_site_profile if stale/empty) and confirm brand/ICP with the user via update_site_profile (approveMaterial)",
+              "2. Call qualitykit.audit (optionally includeRendered with siteUrl)",
+              "3. Call qualitykit.grow — brand-fit scored opportunities, deprioritised queries, safe vs approval",
+              "4. Optionally call qualitykit.ai_audit and qualitykit.plan for briefs/schema/links",
+              "5. Present defects, opportunities, and deprioritised demand — optimise for relevant demand, not maximum keywords",
+              "6. Call qualitykit.fix: finding IDs → diffs (safeAutoOnly for low-risk); page-* / gsc ids → buildContracts (skip irrelevant ids)",
+              "7. Apply technical diffs and implement buildContracts yourself after user approval — match existing project patterns and Site Profile voice",
+              "8. Call qualitykit.verify with findingIds and/or opportunityIds — readyToShip; with Pro key this can mark_applied",
+              "9. After grow (Pro): opportunities.sync (or rely on grow auto-sync) so the dashboard backlog shows found N",
+              "10. If verify did not ship: visibility.mark_applied with readyToShip ids (include path/query) — ships backlog rows",
+              "11. Later: visibility.report / opportunities.list for period metrics, profile freshness, and backlog status (GSC lags ~1–3 days; deltas are correlational)",
               "",
               "Rules:",
               "- Separate defects from opportunities (missing blog is not an error)",
               "- If indexability is blocked, fix robots before recommending new pages",
               "- Do not mass-generate articles",
               "- Do not invent authors, stats, keyword volumes, or competitor claims",
+              "- Do not rewrite ICP or brand positioning from Search Console impressions without user approval",
               "- Ask before changing AI crawler allow/disallow rules",
               "- Do not claim FAQ schema or llms.txt guarantee AI visibility",
               "- Do not claim causal ranking or impression guarantees from changeOutcomes",
