@@ -318,6 +318,7 @@ export async function fetchVisibilityOverlay(args: {
 }): Promise<{
   searchData: string;
   rankedOpportunities: Array<Record<string, unknown>>;
+  siteProfile?: Record<string, unknown> | null;
 } | null> {
   const { apiKey, base } = cloudCreds(args);
   if (!apiKey || !base) return null;
@@ -329,10 +330,33 @@ export async function fetchVisibilityOverlay(args: {
     const data = (await res.json()) as {
       coverage?: { searchData?: string };
       rankedOpportunities?: Array<Record<string, unknown>>;
+      searchQueries?: Array<Record<string, unknown>>;
+      siteProfile?: Record<string, unknown> | null;
     };
+    // Prefer ranked list, then merge any top searchQueries not already present
+    // so brand-fit scoring sees high-impression (incl. irrelevant) demand.
+    const ranked = data.rankedOpportunities ?? [];
+    const byId = new Map(
+      ranked.map((r) => [String(r.id ?? r.query ?? ""), r]),
+    );
+    for (const q of data.searchQueries ?? []) {
+      const id = String(q.id ?? `gsc-query-${String(q.query ?? "")}`);
+      if (!byId.has(id) && q.query) {
+        byId.set(id, {
+          id,
+          title: `Review demand for “${q.query}”`,
+          query: q.query,
+          impressions: q.impressions,
+          clicks: q.clicks,
+          position: q.position,
+          evidence: ["demand=gsc_backed"],
+        });
+      }
+    }
     return {
       searchData: data.coverage?.searchData ?? "not_connected",
-      rankedOpportunities: data.rankedOpportunities ?? [],
+      rankedOpportunities: [...byId.values()],
+      siteProfile: data.siteProfile ?? null,
     };
   } catch {
     return null;
