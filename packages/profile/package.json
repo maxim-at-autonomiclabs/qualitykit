@@ -1,0 +1,39 @@
+{
+  "name": "@qualitykit/profile",
+  "version": "0.3.0",
+  "description": "Shared Site Profile types, freshness, patch rules, and GSC id helpers",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"profile tested via root suite\""
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxim-at-autonomiclabs/qualitykit.git",
+    "directory": "packages/profile"
+  },
+  "homepage": "https://qualitykit.dev",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

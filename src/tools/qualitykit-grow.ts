@@ -69,7 +69,9 @@ export async function qualitykitGrow(args: {
 
     const scoringProfile = {
       ...profile,
-      status: freshness.status,
+      status: (freshness.status === "missing" ? "stale" : freshness.status) as
+        | "fresh"
+        | "stale",
     };
 
     const grow = buildGrowReport(site, audit.findings, gscOps, scoringProfile, {

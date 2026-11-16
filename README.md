@@ -49,7 +49,7 @@ npm run build
 | `qualitykit.audit` | Route inventory + technical/metadata/content/schema/links. **Defects vs opportunities**. Optional rendered HTML. |
 | `qualitykit.grow` | **Brand-aligned growth:** Site Profile + GSC queries → scored opportunities, deprioritised demand, top 10 changes, safe vs approval. |
 | `qualitykit.get_site_profile` | Living Site Profile (brand, ICP, products, voice, pages) with freshness; ephemeral draft when Cloud is offline. |
-| `qualitykit.refresh_site_profile` | Stale-field brief + evidence for the coding agent (no model call inside QualityKit). |
+| `qualitykit.refresh_site_profile` | Cloud model refresh when Pro + `MODEL_*` configured; else offline host-agent brief. |
 | `qualitykit.update_site_profile` | Patch profile; brand/ICP/products stay pending until user approval. |
 | `qualitykit.ai_audit` | AI readiness scores (crawlability, extractability, entity clarity, citation readiness, structured understanding, topical coverage) |
 | `qualitykit.plan` | Content briefs, blog architecture plan, schema, internal links |

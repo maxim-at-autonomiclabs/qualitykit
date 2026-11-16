@@ -98,7 +98,7 @@ export interface GrowReport {
   notes: string[];
   profile?: {
     version: number;
-    status: "fresh" | "stale";
+    status: "fresh" | "stale" | "missing";
     stored: boolean;
     lastVerifiedAt: string | null;
     staleFields: FreshnessReport["staleFields"];
@@ -209,7 +209,7 @@ export function buildGrowReport(
     indexabilityBlocked,
     profile: {
       version: profile.version,
-      status: freshness.status,
+      status: freshness.status === "missing" ? "stale" : freshness.status,
       stored: profile.stored,
       lastVerifiedAt: profile.lastVerifiedAt,
       staleFields: freshness.staleFields,

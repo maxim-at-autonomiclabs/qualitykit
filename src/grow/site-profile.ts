@@ -1,4 +1,26 @@
 import { createHash } from "node:crypto";
+import {
+  MATERIAL_FIELDS,
+  applySiteProfilePatch,
+  approvePendingSiteProfile,
+  checkSiteProfileFreshness,
+  gscQueryOpportunityId,
+  type BrandFitBand,
+  type BrandIdentityValue,
+  type BrandVoiceValue,
+  type CompetitorItem,
+  type ConversionGoalsValue,
+  type ExistingPageItem,
+  type FreshnessReport,
+  type IcpValue,
+  type KeywordRelevanceItem,
+  type ProductItem,
+  type ProfileFieldValue,
+  type SiteProfile,
+  type SiteProfileFieldId,
+  type SiteProfileFields,
+  type StaleFieldInfo,
+} from "@qualitykit/profile";
 import type { SiteModel } from "../model/site.js";
 import {
   coveredSearchTerms,
@@ -6,151 +28,39 @@ import {
   type ProductSignals,
 } from "./product-signals.js";
 
-export type SiteProfileFieldId =
-  | "brandIdentity"
-  | "icp"
-  | "products"
-  | "brandVoice"
-  | "existingPages"
-  | "keywordRelevance"
-  | "competitors"
-  | "conversionGoals";
-
-export type SiteProfileSource = "user" | "agent";
-
-export type StaleReason =
-  | "ttl_expired"
-  | "site_changed"
-  | "new_gsc_queries"
-  | "deployed"
-  | "empty";
-
-export type BrandFitBand = "high" | "adjacent" | "irrelevant";
+export {
+  MATERIAL_FIELDS,
+  FIELD_TTL_MS,
+  applySiteProfilePatch,
+  approvePendingSiteProfile,
+  checkSiteProfileFreshness,
+  gscQueryOpportunityId,
+} from "@qualitykit/profile";
+export type {
+  BrandFitBand,
+  BrandIdentityValue,
+  BrandVoiceValue,
+  CompetitorItem,
+  ConversionGoalsValue,
+  ExistingPageItem,
+  FreshnessReport,
+  IcpValue,
+  KeywordRelevanceItem,
+  ProductItem,
+  ProfileFieldValue,
+  SiteProfile,
+  SiteProfileFieldId,
+  SiteProfileFields,
+  SiteProfileSource,
+  StaleFieldInfo,
+  StaleReason,
+} from "@qualitykit/profile";
 
 export type OpportunityAction =
   | "improve"
   | "create"
   | "fix_overlap"
   | "deprioritise";
-
-/** Fields that rewrite business truth — never applied without user approval. */
-export const MATERIAL_FIELDS: ReadonlySet<SiteProfileFieldId> = new Set([
-  "brandIdentity",
-  "icp",
-  "products",
-]);
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-export const FIELD_TTL_MS: Record<SiteProfileFieldId, number | null> = {
-  brandIdentity: 30 * DAY_MS,
-  icp: 30 * DAY_MS,
-  products: null, // event-driven (site_changed)
-  brandVoice: 30 * DAY_MS,
-  existingPages: null, // event-driven (site_changed / deployed)
-  keywordRelevance: 7 * DAY_MS,
-  competitors: 30 * DAY_MS,
-  conversionGoals: null, // user config only
-};
-
-export interface ProfileFieldValue {
-  value: unknown;
-  updatedAt: string;
-  confidence: "high" | "medium" | "low";
-  evidence: string[];
-  source: SiteProfileSource;
-}
-
-export interface BrandIdentityValue {
-  name: string;
-  positioning: string;
-  category?: string;
-}
-
-export interface IcpValue {
-  audience: string;
-  industries: string[];
-  roles: string[];
-  painPoints: string[];
-}
-
-export interface ProductItem {
-  name: string;
-  description?: string;
-}
-
-export interface BrandVoiceValue {
-  tone: string;
-  terminology: string[];
-  standards: string[];
-}
-
-export interface ExistingPageItem {
-  path: string;
-  topic: string;
-  intent?: string;
-  title?: string;
-}
-
-export interface KeywordRelevanceItem {
-  query: string;
-  score: number;
-  band: BrandFitBand;
-  reason: string;
-  updatedAt?: string;
-}
-
-export interface CompetitorItem {
-  name: string;
-  positioning?: string;
-}
-
-export interface ConversionGoalsValue {
-  primary: string;
-  secondary: string[];
-}
-
-export interface SiteProfileFields {
-  brandIdentity?: ProfileFieldValue;
-  icp?: ProfileFieldValue;
-  products?: ProfileFieldValue;
-  brandVoice?: ProfileFieldValue;
-  existingPages?: ProfileFieldValue;
-  keywordRelevance?: ProfileFieldValue;
-  competitors?: ProfileFieldValue;
-  conversionGoals?: ProfileFieldValue;
-}
-
-export interface SiteProfile {
-  version: number;
-  lastVerifiedAt: string | null;
-  status: "fresh" | "stale";
-  siteHash: string;
-  fields: SiteProfileFields;
-  pendingApproval?: Partial<
-    Record<
-      SiteProfileFieldId,
-      ProfileFieldValue & { proposedAt: string; reason?: string }
-    >
-  >;
-  stored: boolean;
-}
-
-export interface StaleFieldInfo {
-  field: SiteProfileFieldId;
-  reasons: StaleReason[];
-  current?: ProfileFieldValue;
-  evidence: string[];
-}
-
-export interface FreshnessReport {
-  status: "fresh" | "stale";
-  version: number;
-  lastVerifiedAt: string | null;
-  staleFields: StaleFieldInfo[];
-  siteHash: string;
-  stored: boolean;
-}
 
 export interface BrandFitScore {
   query: string;
@@ -324,169 +234,6 @@ function inferPathIntent(path: string): string | undefined {
   if (p.startsWith("/guides")) return "guide";
   if (p === "/" || p === "") return "home";
   return undefined;
-}
-
-export function checkSiteProfileFreshness(
-  profile: SiteProfile,
-  opts: {
-    siteHash: string;
-    now?: Date;
-    knownQueries?: string[];
-    deployedSinceVerify?: boolean;
-  },
-): FreshnessReport {
-  const now = opts.now ?? new Date();
-  const staleFields: StaleFieldInfo[] = [];
-  const fieldIds = Object.keys(FIELD_TTL_MS) as SiteProfileFieldId[];
-
-  for (const field of fieldIds) {
-    const current = profile.fields[field];
-    const reasons: StaleReason[] = [];
-    const evidence: string[] = [];
-
-    if (!current) {
-      reasons.push("empty");
-      evidence.push("field-missing");
-    } else {
-      const ttl = FIELD_TTL_MS[field];
-      if (ttl != null) {
-        const age = now.getTime() - Date.parse(current.updatedAt);
-        if (Number.isFinite(age) && age > ttl) {
-          reasons.push("ttl_expired");
-          evidence.push(`ageMs=${age}`, `ttlMs=${ttl}`);
-        }
-      }
-    }
-
-    if (
-      (field === "products" || field === "existingPages") &&
-      opts.siteHash !== profile.siteHash
-    ) {
-      reasons.push("site_changed");
-      evidence.push(`profileHash=${profile.siteHash}`, `siteHash=${opts.siteHash}`);
-    }
-
-    if (field === "existingPages" && opts.deployedSinceVerify) {
-      reasons.push("deployed");
-      evidence.push("deployed-since-last-verify");
-    }
-
-    if (field === "keywordRelevance" && opts.knownQueries?.length) {
-      const known = new Set(
-        (asKeywordItems(current?.value) ?? []).map((k) =>
-          k.query.toLowerCase(),
-        ),
-      );
-      const unseen = opts.knownQueries.filter(
-        (q) => !known.has(q.toLowerCase()),
-      );
-      if (unseen.length > 0) {
-        reasons.push("new_gsc_queries");
-        evidence.push(`unseen=${unseen.slice(0, 5).join("|")}`);
-      }
-    }
-
-    if (reasons.length > 0) {
-      staleFields.push({ field, reasons, current, evidence });
-    }
-  }
-
-  return {
-    status: staleFields.length > 0 ? "stale" : "fresh",
-    version: profile.version,
-    lastVerifiedAt: profile.lastVerifiedAt,
-    staleFields,
-    siteHash: opts.siteHash,
-    stored: profile.stored,
-  };
-}
-
-function asKeywordItems(value: unknown): KeywordRelevanceItem[] | undefined {
-  if (!Array.isArray(value)) return undefined;
-  return value as KeywordRelevanceItem[];
-}
-
-export function applySiteProfilePatch(
-  profile: SiteProfile,
-  patch: Partial<Record<SiteProfileFieldId, ProfileFieldValue>>,
-  opts?: { approveMaterial?: boolean; now?: Date },
-): {
-  profile: SiteProfile;
-  applied: SiteProfileFieldId[];
-  pending: SiteProfileFieldId[];
-} {
-  const now = (opts?.now ?? new Date()).toISOString();
-  const next: SiteProfile = {
-    ...profile,
-    fields: { ...profile.fields },
-    pendingApproval: { ...(profile.pendingApproval ?? {}) },
-  };
-  const applied: SiteProfileFieldId[] = [];
-  const pending: SiteProfileFieldId[] = [];
-
-  for (const [key, fieldValue] of Object.entries(patch) as Array<
-    [SiteProfileFieldId, ProfileFieldValue]
-  >) {
-    if (!fieldValue) continue;
-    const normalized: ProfileFieldValue = {
-      ...fieldValue,
-      updatedAt: fieldValue.updatedAt || now,
-    };
-
-    if (MATERIAL_FIELDS.has(key) && !opts?.approveMaterial) {
-      next.pendingApproval![key] = {
-        ...normalized,
-        proposedAt: now,
-      };
-      pending.push(key);
-      continue;
-    }
-
-    next.fields[key] = normalized;
-    if (next.pendingApproval?.[key]) {
-      delete next.pendingApproval[key];
-    }
-    applied.push(key);
-  }
-
-  if (applied.length > 0) {
-    next.version = profile.version + 1;
-    next.lastVerifiedAt = now;
-  }
-
-  if (next.pendingApproval && Object.keys(next.pendingApproval).length === 0) {
-    delete next.pendingApproval;
-  }
-
-  return { profile: next, applied, pending };
-}
-
-export function approvePendingSiteProfile(
-  profile: SiteProfile,
-  fields?: SiteProfileFieldId[],
-  now = new Date(),
-): SiteProfile {
-  const pending = profile.pendingApproval ?? {};
-  const keys = (fields ?? (Object.keys(pending) as SiteProfileFieldId[])).filter(
-    (k) => pending[k],
-  );
-  if (keys.length === 0) return profile;
-
-  const patch: Partial<Record<SiteProfileFieldId, ProfileFieldValue>> = {};
-  for (const key of keys) {
-    const p = pending[key]!;
-    patch[key] = {
-      value: p.value,
-      updatedAt: now.toISOString(),
-      confidence: p.confidence,
-      evidence: p.evidence,
-      source: "user",
-    };
-  }
-  return applySiteProfilePatch(profile, patch, {
-    approveMaterial: true,
-    now,
-  }).profile;
 }
 
 /** Build a scoring lexicon from the approved profile (pending ignored). */
@@ -695,7 +442,7 @@ export function classifyGscQuery(
   }
 
   return {
-    id: opp.id.startsWith("gsc-") ? opp.id : `gsc-query-${slugId(query)}`,
+    id: opp.id.startsWith("gsc-") ? opp.id : gscQueryOpportunityId(query),
     query,
     pagePath: opp.pagePath,
     impressions,
@@ -783,15 +530,7 @@ function normalizePath(path: string): string {
   return path;
 }
 
-function slugId(query: string): string {
-  return query
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 48);
-}
-
-/** Refresh evidence for the agent — no model call. */
+/** Offline fallback brief when Cloud model refresh is unavailable. */
 export function buildRefreshBrief(
   profile: SiteProfile,
   freshness: FreshnessReport,
@@ -810,12 +549,12 @@ export function buildRefreshBrief(
   const signals = extractProductSignals(site);
   return {
     instruction:
-      "Reassess only the listed stale fields using the evidence below. Propose a patch via qualitykit.update_site_profile. Leave fresh fields untouched. Ask the user before changing brand identity, ICP, or product positioning.",
+      "Prefer Cloud model refresh (qualitykit.refresh_site_profile with Pro). Offline: reassess only stale fields, then qualitykit.update_site_profile. Ask before changing brand identity, ICP, or product positioning.",
     staleFields: freshness.staleFields,
     evidence: {
       productSignals: signals,
       coveredTerms: [...coveredSearchTerms(site)].slice(0, 40),
-      siteHash: freshness.siteHash,
+      siteHash: freshness.siteHash ?? profile.siteHash,
       sampleQueries: gscQueries.slice(0, 20),
     },
   };

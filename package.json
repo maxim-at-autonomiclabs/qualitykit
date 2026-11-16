@@ -18,14 +18,16 @@
   ],
   "scripts": {
     "postinstall": "node scripts/cf-prepare.mjs",
-    "build": "npm run build -w @qualitykit/engine && tsc",
+    "build": "npm run build -w @qualitykit/engine && npm run build -w @qualitykit/profile && tsc",
     "build:engine": "npm run build -w @qualitykit/engine",
+    "build:profile": "npm run build -w @qualitykit/profile",
     "publish:engine": "npm publish -w @qualitykit/engine --access public",
+    "publish:profile": "npm publish -w @qualitykit/profile --access public",
     "cf:deploy": "node scripts/cf-deploy.mjs",
     "deploy:web": "npm run deploy --prefix website",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "test": "npm run build:engine && vitest run",
+    "test": "npm run build:engine && npm run build:profile && vitest run",
     "test:watch": "vitest",
     "test:meta": "npm run build && node scripts/meta-smoke.mjs",
     "test:all": "npm test && npm run test:meta && npm test --prefix ../qualitykit-cloud",
@@ -54,6 +56,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@qualitykit/engine": "0.3.0",
+    "@qualitykit/profile": "0.3.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

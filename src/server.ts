@@ -132,9 +132,9 @@ export function createServer(): McpServer {
   server.registerTool(
     "qualitykit.refresh_site_profile",
     {
-      title: "Refresh Site Profile (brief)",
+      title: "Refresh Site Profile",
       description:
-        "Return stale fields, reasons, and repo/GSC evidence for the coding agent to reassess. Does not call a model inside QualityKit.",
+        "Prefer Cloud model refresh when Pro + MODEL_* are configured (stale fields only; material stays pending). Offline: returns a host-agent brief from repo evidence.",
       inputSchema: refreshSiteProfileInputSchema,
     },
     qualitykitRefreshSiteProfile,

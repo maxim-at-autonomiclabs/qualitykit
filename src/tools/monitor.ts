@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { wrapReport } from "@qualitykit/engine";
+import { gscQueryOpportunityId } from "@qualitykit/profile";
 import { errorResult, jsonResult } from "./helpers.js";
 
 export const monitorStatusInputSchema = {
@@ -340,12 +341,14 @@ export async function fetchVisibilityOverlay(args: {
       ranked.map((r) => [String(r.id ?? r.query ?? ""), r]),
     );
     for (const q of data.searchQueries ?? []) {
-      const id = String(q.id ?? `gsc-query-${String(q.query ?? "")}`);
-      if (!byId.has(id) && q.query) {
+      const query = typeof q.query === "string" ? q.query : "";
+      if (!query) continue;
+      const id = String(q.id ?? gscQueryOpportunityId(query));
+      if (!byId.has(id)) {
         byId.set(id, {
           id,
-          title: `Review demand for “${q.query}”`,
-          query: q.query,
+          title: `Review demand for “${query}”`,
+          query,
           impressions: q.impressions,
           clicks: q.clicks,
           position: q.position,

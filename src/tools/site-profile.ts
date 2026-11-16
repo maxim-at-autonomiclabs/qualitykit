@@ -147,7 +147,7 @@ export async function resolveSiteProfile(args: {
     siteHash,
     knownQueries,
   });
-  profile.status = freshness.status;
+  profile.status = freshness.status === "missing" ? "stale" : freshness.status;
   return { site, profile, freshness };
 }
 
@@ -201,6 +201,49 @@ export async function qualitykitRefreshSiteProfile(args: {
       });
     }
 
+    // Prefer Cloud model refresh when Pro credentials exist
+    const { apiKey, base } = cloudCreds(args);
+    if (apiKey && base) {
+      try {
+        const res = await fetch(
+          `${base.replace(/\/$/, "")}/api/site-profile/refresh`,
+          {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-qualitykit-key": apiKey,
+            },
+            body: JSON.stringify({}),
+          },
+        );
+        const data = (await res.json()) as Record<string, unknown>;
+        if (res.ok && data.profile) {
+          return jsonResult({
+            ok: true,
+            tool: "qualitykit.refresh_site_profile",
+            status: "model_refreshed",
+            profile: data.profile,
+            applied: data.applied ?? [],
+            pending: data.pending ?? [],
+            freshness: data.freshness,
+            modelUsed: data.modelUsed,
+            notes: data.notes,
+            nextStep:
+              Array.isArray(data.pending) && (data.pending as string[]).length
+                ? "Approve pending brand/ICP/products via qualitykit.update_site_profile({ approvePending }) or the dashboard."
+                : "Profile updated. Run qualitykit.grow to score opportunities.",
+          });
+        }
+        if (data.error === "model_not_configured") {
+          // Fall through to offline brief
+        } else if (!res.ok) {
+          // Fall through with note
+        }
+      } catch {
+        /* offline brief */
+      }
+    }
+
     const brief = buildRefreshBrief(
       profile,
       freshness,
@@ -215,8 +258,9 @@ export async function qualitykitRefreshSiteProfile(args: {
       profile,
       freshness,
       refresh: brief,
+      modelConfigured: false,
       nextStep:
-        "Reassess stale fields with the host coding agent, then call qualitykit.update_site_profile with a patch. Use approveMaterial=true only after the user confirms brand/ICP/product changes.",
+        "Cloud model unavailable. Reassess stale fields with the host coding agent, then qualitykit.update_site_profile. Or set MODEL_* secrets on Cloud for auto maintenance.",
     });
   } catch (error) {
     return errorResult(error);
@@ -277,10 +321,11 @@ export async function qualitykitUpdateSiteProfile(args: {
       approveMaterial: Boolean(args.approveMaterial),
     });
     next = result.profile;
-    next.siteHash = freshness.siteHash;
-    next.status = checkSiteProfileFreshness(next, {
-      siteHash: freshness.siteHash,
-    }).status;
+    next.siteHash = freshness.siteHash ?? next.siteHash;
+    const after = checkSiteProfileFreshness(next, {
+      siteHash: next.siteHash,
+    });
+    next.status = after.status === "missing" ? "stale" : after.status;
 
     const pushed = await pushCloudProfile({
       apiBaseUrl: args.apiBaseUrl,
