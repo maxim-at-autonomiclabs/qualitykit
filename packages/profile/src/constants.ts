@@ -2,7 +2,11 @@ import type { SiteProfileFieldId } from "./types.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Fields that rewrite business truth — never applied without user approval. */
+/**
+ * Fields that rewrite business truth.
+ * Empty values may be auto-filled by Cloud model refresh; non-empty approved
+ * values are not silently overwritten.
+ */
 export const MATERIAL_FIELDS: ReadonlySet<SiteProfileFieldId> = new Set([
   "brandIdentity",
   "icp",

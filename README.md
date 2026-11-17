@@ -58,6 +58,8 @@ npm run build
 | `monitor.status` | Latest hosted Pro run when `QUALITYKIT_API_KEY` is set; otherwise `self_hosted` / `not_run` |
 | `visibility.report` | Search Console period metrics (incl. position/CTR), profile freshness, ranked opportunities, and `changeOutcomes` via Cloud when API key is set; otherwise `not_connected` |
 | `visibility.mark_applied` | Snapshot GSC metrics for grow change ids after deploy so later `visibility.report` shows per-change deltas (Pro + API key) |
+| `sitemap.submit` | Register `/sitemap.xml` with Google Search Console (and Bing when a Webmaster key is saved). Free when Cloud + Search Console are connected. Does not request indexing. |
+| `sitemap.status` | Read Google/Bing sitemap processing status (pending, errors, warnings) via Cloud |
 
 Responses include additive `schemaVersion` + `coverage` fields. Never treat `not_run` as a pass.
 
@@ -73,13 +75,15 @@ Prompt: `audit-site`
 2. `qualitykit.grow` — why impressions are limited, top 10, safe vs approval
 3. Optionally `qualitykit.ai_audit` and `qualitykit.plan`
 4. Present defects and grow changes (no volumes or impression counts)
-5. `qualitykit.fix` with approved finding IDs (`safeAutoOnly: true` for low-risk)
-6. Apply diffs in the repo
-7. `qualitykit.verify`
-8. **Pro + GSC:** after deploy, `visibility.mark_applied` with `topChanges` ids (pass `items` with `path`/`query` when available)
+5. **Pro dashboard Opportunities:** **Copy MCP prompt** for an item (or call `qualitykit.fix` with that `opportunityId`)
+6. Implement `buildContract`s in the repo; then `qualitykit.verify` with `markApplied: true` so the backlog ships
+7. `qualitykit.fix` with finding IDs (`safeAutoOnly: true` for low-risk technical diffs) when not using an opportunity card
+8. **Sitemap (free):** after deploy, `sitemap.submit` once Search Console is connected in the dashboard. Google usually rediscovers later updates without resubmitting. Check `sitemap.status` for processing errors.
 9. Later `visibility.report` for period metrics and `changeOutcomes` (Search Console often lags 1–3 days; deltas are correlational, not a ranking guarantee)
 
-**MCP API key** (`qk_…` from the dashboard) is for the local MCP to call QualityKit Cloud — not for Google OAuth. Connect Search Console in the dashboard with Google login; set `QUALITYKIT_API_KEY` + `QUALITYKIT_API_BASE=https://app.qualitykit.dev` in Cursor so `visibility.*` / grow enrichment work.
+Empty brand/ICP on the Site Profile auto-fills from the Cloud model when `MODEL_*` is configured — no dashboard approve step.
+
+**MCP API key** (`qk_…` from the dashboard) is for the local MCP to call QualityKit Cloud — not for Google OAuth. Free accounts can mint a key for `sitemap.submit` / `sitemap.status`. Connect Search Console (and optionally a Bing Webmaster API key) in the dashboard; set `QUALITYKIT_API_KEY` + `QUALITYKIT_API_BASE=https://app.qualitykit.dev` in Cursor. Pro unlocks `visibility.*`, grow GSC enrichment, and hosted crawls.
 
 ## Findings model
 
@@ -98,17 +102,19 @@ Heuristic 0–100 scores with evidence. They **do not** predict rankings or AI c
 | | Free forever ($0) | Pro ($29/mo) |
 | --- | --- | --- |
 | Local MCP audits, `qualitykit.grow`, AI readiness, fixes, verify | Yes | Yes |
-| Account / API key required | No | For hosted features |
+| Sitemap create/update/validate in MCP | Yes | Yes |
+| Account / API key required | Optional (for sitemap submit) | For hosted features |
+| `sitemap.submit` / `sitemap.status` (GSC + optional Bing) | Yes when Cloud + GSC linked | Yes |
 | Daily hosted crawls + history | — | 1 production site |
 | Email regression alerts | — | Yes |
 | `monitor.status` via cloud | Self-hosted stub | Connected |
-| Google Search Console connect + sync | — | Yes (1 site) |
+| Google Search Console analytics sync | Connect for sitemap only | Yes (1 site) + impressions/queries |
 | `visibility.report` + grow GSC enrichment | Offline / `not_connected` | Connected when GSC linked |
 | `visibility.mark_applied` + per-change deltas | — | Snapshot applied recs; outcomes in report / dashboard |
 
-**Free:** explain why impressions are limited from the codebase, rank the next 10 changes, mark safe auto-fixes, and verify after the coding agent applies approved diffs. No OpenAI key inside QualityKit.
+**Free:** explain why impressions are limited from the codebase, rank the next 10 changes, mark safe auto-fixes, verify after the coding agent applies approved diffs, and (with a free Cloud account) submit/monitor the sitemap. No OpenAI key inside QualityKit. Sitemap registration does not guarantee indexing or rankings.
 
-**Pro:** daily crawl, history, email alerts, plus Google Search Console OAuth for the monitored site. Re-ranks opportunities with real queries and shows last-28d vs prior-28d impressions/clicks. Mark recommendations applied (dashboard or `visibility.mark_applied`) to snapshot per-change baselines; later syncs power `changeOutcomes` deltas.
+**Pro:** daily crawl, history, email alerts, plus Search Console analytics sync for the monitored site. Re-ranks opportunities with real queries and shows last-28d vs prior-28d impressions/clicks. Mark recommendations applied (dashboard or `visibility.mark_applied`) to snapshot per-change baselines; later syncs power `changeOutcomes` deltas.
 
 Hosted Pro runs at [app.qualitykit.dev](https://app.qualitykit.dev). The cloud app (Workers, D1, Clerk, Stripe, managed GSC) is a separate private product. This repository is the free local MCP and shared `@qualitykit/engine` package. Point Cursor at Pro with `QUALITYKIT_API_KEY` and `QUALITYKIT_API_BASE=https://app.qualitykit.dev`.
 

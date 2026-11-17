@@ -1,6 +1,6 @@
 {
   "name": "@qualitykit/profile",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Shared Site Profile types, freshness, patch rules, and GSC id helpers",
   "type": "module",
   "main": "./dist/index.js",

@@ -30,18 +30,23 @@ Or with Cursor, point MCP at `node` + `dist/index.js` after a build.
 
 Hosted Pro (app.qualitykit.dev) lives in a separate private repository.
 
-### Publishing `@qualitykit/engine`
+### Publishing packages
 
-Private Cloud depends on the npm package [`@qualitykit/engine`](https://www.npmjs.com/package/@qualitykit/engine).
+Private Cloud depends on [`@qualitykit/engine`](https://www.npmjs.com/package/@qualitykit/engine) and [`@qualitykit/profile`](https://www.npmjs.com/package/@qualitykit/profile).
 
 ```bash
-# After engine changes on main:
+# After engine / profile changes on main:
 npm run publish:engine
-# or: Actions → Publish @qualitykit/engine (needs NPM_TOKEN secret)
+npm run publish:profile
+# or: Actions → Publish @qualitykit/engine|profile (needs NPM_TOKEN secret)
 
-# Optional fallback for git installs:
+# Optional fallback for git installs of the engine:
 node scripts/refresh-engine-publish.mjs
 ```
+
+### Opportunities → MCP loop
+
+On the Pro dashboard **Opportunities** tab, use **Copy MCP prompt** for an item, paste into Cursor with QualityKit MCP + Pro API key, then let the agent run `qualitykit.fix` → implement → `qualitykit.verify` (`markApplied: true`) until the backlog shows **shipped**. Empty brand/ICP on the Site Profile auto-fills from the model when configured.
 
 ## Guidelines
 

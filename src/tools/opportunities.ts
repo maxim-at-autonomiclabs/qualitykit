@@ -153,6 +153,8 @@ export const opportunitiesSyncInputSchema = {
         impressions: z.number().optional(),
         clicks: z.number().optional(),
         position: z.number().optional(),
+        action: z.string().optional(),
+        suggestedFix: z.string().optional(),
       }),
     )
     .optional()
@@ -193,16 +195,23 @@ export async function opportunitiesSync(args: {
       const site = loadSite(args.projectRoot, args.siteUrl);
       const audit = runAuditEngine(site);
       const grow = buildGrowReport(site, audit.findings, []);
-      items = grow.topChanges.map((c) => ({
-        id: c.id,
-        title: c.title,
-        kind: c.kind,
-        expectedImpact: c.expectedImpact,
-        confidence: c.confidence,
-        effort: c.effort,
-        evidence: c.evidence,
-        page: c.page ? { path: c.page.path } : undefined,
-      }));
+      items = grow.topChanges.map((c) => {
+        const action =
+          c.evidence.find((e) => e.startsWith("action="))?.slice("action=".length) ??
+          (c.kind === "page" ? "create" : undefined);
+        return {
+          id: c.id,
+          title: c.title,
+          kind: c.kind,
+          expectedImpact: c.expectedImpact,
+          confidence: c.confidence,
+          effort: c.effort,
+          evidence: c.evidence,
+          page: c.page ? { path: c.page.path } : undefined,
+          suggestedFix: c.suggestedFix,
+          action,
+        };
+      });
     }
 
     const res = await fetch(

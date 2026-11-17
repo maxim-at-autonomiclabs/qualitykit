@@ -135,3 +135,46 @@ export function emptyProfile(siteHash = ""): SiteProfile {
     stored: false,
   };
 }
+
+/** True when a field has no meaningful approved value (safe for auto-fill). */
+export function isFieldValueEmpty(
+  fieldId: SiteProfileFieldId,
+  value: unknown,
+): boolean {
+  if (value == null) return true;
+  if (fieldId === "brandIdentity") {
+    const v = value as { name?: string; positioning?: string };
+    return !String(v.name || "").trim() && !String(v.positioning || "").trim();
+  }
+  if (fieldId === "icp") {
+    const v = value as { audience?: string };
+    return !String(v.audience || "").trim();
+  }
+  if (fieldId === "products") {
+    return !Array.isArray(value) || value.length === 0;
+  }
+  if (fieldId === "brandVoice") {
+    const v = value as { tone?: string };
+    return !String(v.tone || "").trim();
+  }
+  if (fieldId === "existingPages" || fieldId === "keywordRelevance" || fieldId === "competitors") {
+    return !Array.isArray(value) || value.length === 0;
+  }
+  if (fieldId === "conversionGoals") {
+    const v = value as { primary?: string };
+    return !String(v.primary || "").trim();
+  }
+  if (typeof value === "string") return !value.trim();
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value as object).length === 0;
+  return false;
+}
+
+/** Brand or ICP missing — triggers Cloud auto model refresh. */
+export function needsBrandOrIcpFill(profile: SiteProfile | null | undefined): boolean {
+  if (!profile || !profile.stored) return true;
+  return (
+    isFieldValueEmpty("brandIdentity", profile.fields.brandIdentity?.value) ||
+    isFieldValueEmpty("icp", profile.fields.icp?.value)
+  );
+}

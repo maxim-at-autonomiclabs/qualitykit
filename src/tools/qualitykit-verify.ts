@@ -110,11 +110,14 @@ export async function qualitykitVerify(args: {
 
     for (const id of opportunityIds) {
       const change = findGrowChangeById(beforeSite, before.findings, id);
+      const pathFromEvidence = change?.evidence
+        ?.find((e) => e.startsWith("path="))
+        ?.slice("path=".length);
       const path =
         args.paths?.[id] ??
         change?.page?.path ??
         pathFromPageOpportunityId(id) ??
-        null;
+        (pathFromEvidence || null);
       const present = path
         ? routePathPresent(afterSite.routes, path)
         : false;
