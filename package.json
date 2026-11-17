@@ -57,7 +57,7 @@
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@qualitykit/engine": "0.3.0",
     "@qualitykit/profile": "0.3.2",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.15.29",
